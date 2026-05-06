@@ -13,28 +13,28 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async findById(id: number): Promise<UserDTO | undefined> {
+  async findById(id: number): Promise<User | undefined> {
     const result = await this.userRepository.findOne({ where: { id } });
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async findByFields(
-    options: FindOneOptions<UpdateUserDTO>,
-  ): Promise<UserDTO | undefined> {
+    options: FindOneOptions<User>,
+  ): Promise<User | undefined> {
     const result = await this.userRepository.findOne(options);
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async find(
-    options: FindManyOptions<UpdateUserDTO>,
-  ): Promise<UserDTO | undefined> {
+    options: FindManyOptions<User>,
+  ): Promise<User | undefined> {
     const result = await this.userRepository.findOne(options);
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async findAndCount(
-    options: FindManyOptions<UserDTO>,
-  ): Promise<[UserDTO[], number]> {
+    options: FindManyOptions<User>,
+  ): Promise<[User[], number]> {
     const resultList = await this.userRepository.findAndCount(options);
     return resultList;
   }
@@ -43,7 +43,7 @@ export class UserService {
     userDTO: UpdateUserDTO,
     creator?: string,
     updatePassword = false,
-  ): Promise<UserDTO> {
+  ): Promise<User> {
     if (updatePassword) {
       await transformPassword(userDTO);
     }
@@ -76,7 +76,7 @@ export class UserService {
     return userDTO;
   }
 
-  async delete(userDTO: UserDTO): Promise<UserDTO | undefined> {
+  async delete(userDTO: User): Promise<User | undefined> {
     const result = await this.userRepository.remove(userDTO);
     return result;
   }

@@ -8,10 +8,10 @@ import { UpdateUserDTO } from './dtos/update-user.dto';
 const allowedUserDtoKeys: ReadonlyArray<keyof UserDTO | keyof BaseDTO> = [
   'id',
   'createdAt',
-  'email',
+  'name',
   'username',
-  'activated',
-  'imageUrl',
+  'phone',
+  'isActive',
   'role',
 ];
 

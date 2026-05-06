@@ -31,7 +31,7 @@ import { UpdateUserDTO } from './dtos/update-user.dto';
 import { User } from './user.entity';
 import { UserQueryDTO } from './dtos/user-query.dto';
 
-@Controller('api/users')
+@Controller('users')
 @ApiBearerAuth()
 @UseGuards(AuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
@@ -90,16 +90,16 @@ export class UserController {
   async create(
     @Body() userDTO: UserDTO,
     @AuthUser() user: User,
-  ): Promise<UserDTO> {
+  ): Promise<User> {
     const existing = await this.userService.findByFields({
-      where: { email: userDTO.email },
+      where: { username: userDTO.username },
     });
     if (existing) {
       throw new BadRequestException(
-        `User with email ${userDTO.email} already exists`,
+        `User with username ${userDTO.username} already exists`,
       );
     }
-    const created = await this.userService.save(userDTO, user?.email, true);
+    const created = await this.userService.save(userDTO, user?.username, true);
     return created;
   }
 
@@ -122,16 +122,16 @@ export class UserController {
       throw new NotFoundException(`User with id ${id} not found`);
     }
     const existingEmail = await this.userService.findByFields({
-      where: { email: userDTO.email },
+      where: { username: userDTO.username },
     });
 
     if (existingEmail && existingEmail.id !== Number(id)) {
       throw new BadRequestException(
-        `User with email ${userDTO.email} already exists`,
+        `User with username ${userDTO.username} already exists`,
       );
     }
     userDTO.id = id;
-    const updated = await this.userService.update(userDTO, user?.email);
+    const updated = await this.userService.update(userDTO, user?.username);
     return updated;
   }
 

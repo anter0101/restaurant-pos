@@ -6,6 +6,7 @@ import { UserService } from 'src/app/modules/user/user.service';
 import { AuthLoginDTO } from './dto/auth-login.dto';
 import { JwtPayload } from 'src/core/security/interfaces/jwt-payload.interface';
 import { UserDTO } from 'src/app/modules/user/dtos/user.dto';
+import { User } from 'src/app/modules/user/user.entity';
 import { UserRole } from 'src/core/enums/user-role';
 import { GeneratedToken } from 'src/core/security/interfaces/token.interface';
 
@@ -17,22 +18,22 @@ export class AuthService {
   ) {}
 
   async login(userLogin: AuthLoginDTO): Promise<GeneratedToken> {
-    const loginEmail = userLogin.email;
+    const loginUsername = userLogin.username;
     const loginPassword = userLogin.password;
 
     const userFind = await this.userService.findByFields({
-      where: { email: Equal(loginEmail) },
+      where: { username: Equal(loginUsername) },
     });
     const validPassword =
       !!userFind && (await bcrypt.compare(loginPassword, userFind.password));
     if (!userFind || !validPassword) {
       throw new HttpException(
-        'Invalid login email or password!',
+        'Invalid login username or password!',
         HttpStatus.UNAUTHORIZED,
       );
     }
 
-    if (userFind && !userFind.activated) {
+    if (userFind && !userFind.isActive) {
       throw new HttpException(
         'Your account is not been activated!',
         HttpStatus.BAD_REQUEST,
@@ -48,10 +49,10 @@ export class AuthService {
     });
   }
 
-  generateToken(user: UserDTO): GeneratedToken {
+  generateToken(user: Pick<User, 'id' | 'username' | 'role'>): GeneratedToken {
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
+      username: user.username,
       role: user.role,
     };
     return {
@@ -59,21 +60,21 @@ export class AuthService {
     };
   }
 
-  async registerNewUser(newUser: UserDTO): Promise<UserDTO> {
+  async registerNewUser(newUser: UserDTO): Promise<User> {
     const userFind = await this.userService.findByFields({
       where: {
-        email: Equal(newUser.email),
+        username: Equal(newUser.username),
       },
     });
 
     if (userFind) {
-      throw new HttpException('Email_Exist', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Username_Exist', HttpStatus.BAD_REQUEST);
     }
 
     if (!newUser.role) {
-      newUser.role = UserRole.ADMIN;
+      newUser.role = UserRole.MANAGER;
     }
-    const user = await this.userService.save(newUser, newUser.email, true);
+    const user = await this.userService.save(newUser, newUser.username, true);
 
     return user;
   }

@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { AuthLoginDTO } from './dto/auth-login.dto';
 import { UserService } from '../user/user.service';
 
-@Controller('api/auth')
+@Controller('auth')
 export class AuthController {
   logger = new Logger('AuthController');
 
@@ -21,7 +21,7 @@ export class AuthController {
     const jwt = await this.authService.login(userDTO);
     const user = await this.userService.findByFields({
       where: {
-        email: userDTO.email,
+        username: userDTO.username,
       },
     });
     res.json({
