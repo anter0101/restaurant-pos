@@ -37,6 +37,8 @@ export class CreateUserTable1720796623509 implements MigrationInterface {
             name: 'role',
             type: 'enum',
             enum: [
+              UserRole.USER,
+              UserRole.ADMIN,
               UserRole.MANAGER,
               UserRole.CASHIER,
               UserRole.CALLCENTER,

@@ -1,7 +1,8 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { BaseEntity } from 'src/core/utils/base.entity';
 import { UserRole } from 'src/core/enums/user-role';
+import { Branch } from '../branch/branch.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -23,4 +24,13 @@ export class User extends BaseEntity {
 
   @Column({ name: 'is_active', type: 'boolean', nullable: false, default: true })
   isActive: boolean;
+
+
+  @ManyToOne(() => Branch, (branch) => branch.users, {
+    eager: true,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'branch_id' })
+  branch?: Branch;
 }

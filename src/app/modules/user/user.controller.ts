@@ -12,6 +12,7 @@ import {
   Param,
   NotFoundException,
   BadRequestException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
@@ -22,14 +23,16 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard, Roles, RolesGuard, AuthUser } from 'src/core/security';
 import { UserDTO } from './dtos/user.dto';
+import { CreateUserDTO } from './dtos/create-user.dto';
 import { UserRole } from 'src/core/enums/user-role';
 import { PageRequest } from 'src/core/utils/pagination.entity';
 import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
-import { mapUserToUserDtoSelective } from './user.mapper';
+import { mapCreateUserDtoToEntity, mapUpdateUserDtoToEntity, mapUserToUserDtoSelective } from './user.mapper';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import { User } from './user.entity';
 import { UserQueryDTO } from './dtos/user-query.dto';
+import { BranchService } from '../branch/branch.service';
 
 @Controller('users')
 @ApiBearerAuth()
@@ -39,7 +42,40 @@ import { UserQueryDTO } from './dtos/user-query.dto';
 export class UserController {
   logger = new Logger('UsersController');
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly branchService: BranchService,
+  ) {}
+
+  private async ensureBranchExistsWhenProvided(
+    branchId: number | null | undefined,
+  ): Promise<void> {
+    if (branchId == null) {
+      return;
+    }
+    const branch = await this.branchService.findById(branchId);
+    if (!branch) {
+      throw new BadRequestException(`Branch with id ${branchId} not found`);
+    }
+  }
+
+  private async ensureUsernameIsUnique(username: string): Promise<void> {
+    const existing = await this.userService.findByFields({
+      where: { username: username },
+    });
+    if (existing) {
+      throw new BadRequestException(`Username ${username} already exists`);
+    }
+  }
+
+  private async ensurePhoneIsUnique(phone: string): Promise<void> {
+    const existing = await this.userService.findByFields({
+      where: { phone: phone },
+    });
+    if (existing) {
+      throw new BadRequestException(`Phone ${phone} already exists`);
+    }
+  }
 
   @Get('/')
   @Roles(UserRole.ADMIN, UserRole.USER)
@@ -53,7 +89,7 @@ export class UserController {
   async getAllUsers(
     @Req() req: Request,
     @Query() query: UserQueryDTO,
-  ): Promise<UpdateUserDTO[]> {
+  ): Promise<Partial<UserDTO>[]> {
     const pageRequest: PageRequest = new PageRequest(
       +(query.page ?? 1),
       +(query.pageSize ?? 10),
@@ -64,6 +100,7 @@ export class UserController {
       skip: +pageRequest.page * pageRequest.size,
       take: +pageRequest.size,
       order: pageRequest.sort.asOrder(),
+      relations: ['branch'],
     });
 
     const userDtos = mapUserToUserDtoSelective(results);
@@ -78,6 +115,24 @@ export class UserController {
     return userDtos;
   }
 
+
+  @Get('/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get a user by id' })
+  @ApiResponse({
+    status: 200,
+    description: 'The record has been successfully retrieved.',
+    type: UserDTO,
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async getUserById(@Param('id', ParseIntPipe) id: number): Promise<Partial<UserDTO> | undefined> {
+    const existing = await this.userService.findById(id);
+    if (!existing) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return mapUserToUserDtoSelective(existing);
+  }
+
   @Post('/')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new user' })
@@ -88,18 +143,22 @@ export class UserController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async create(
-    @Body() userDTO: UserDTO,
+    @Body() userDTO: CreateUserDTO,
     @AuthUser() user: User,
   ): Promise<User> {
-    const existing = await this.userService.findByFields({
-      where: { username: userDTO.username },
-    });
-    if (existing) {
-      throw new BadRequestException(
-        `User with username ${userDTO.username} already exists`,
-      );
+
+    if(userDTO.username !== undefined) {
+      await this.ensureUsernameIsUnique(userDTO.username);
     }
-    const created = await this.userService.save(userDTO, user?.username, true);
+    if(userDTO.phone !== undefined) {
+      await this.ensurePhoneIsUnique(userDTO.phone);
+    }
+    if(userDTO.branchId !== undefined) {
+      await this.ensureBranchExistsWhenProvided(userDTO.branchId);
+    }
+
+    const userEntity = mapCreateUserDtoToEntity(userDTO);
+    const created = await this.userService.save(userEntity, user?.username, true);
     return created;
   }
 
@@ -113,25 +172,29 @@ export class UserController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async update(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() userDTO: UpdateUserDTO,
     @AuthUser() user: User,
-  ): Promise<UpdateUserDTO> {
+    ): Promise<User> {
+    
     const existing = await this.userService.findById(id);
     if (!existing) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
-    const existingEmail = await this.userService.findByFields({
-      where: { username: userDTO.username },
-    });
-
-    if (existingEmail && existingEmail.id !== Number(id)) {
-      throw new BadRequestException(
-        `User with username ${userDTO.username} already exists`,
-      );
+   
+    if(userDTO.username !== undefined) {
+      await this.ensureUsernameIsUnique(userDTO.username);
     }
-    userDTO.id = id;
-    const updated = await this.userService.update(userDTO, user?.username);
+    if(userDTO.phone !== undefined) {
+      await this.ensurePhoneIsUnique(userDTO.phone);
+    }
+    if(userDTO.branchId !== undefined) {
+      await this.ensureBranchExistsWhenProvided(userDTO.branchId);
+    }
+
+    const userEntity = mapUpdateUserDtoToEntity(userDTO);
+    userEntity.id = id;
+    const updated = await this.userService.update(userEntity, user?.username);
     return updated;
   }
 

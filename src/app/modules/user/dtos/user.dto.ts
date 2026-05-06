@@ -1,8 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEnum, IsNotEmpty, IsBoolean, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { Exclude } from 'class-transformer';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { UserRole } from 'src/core/enums/user-role';
+import { BranchDTO } from '../../branch/dtos/branch.dto';
 
 /**
  * An User DTO object.
@@ -15,11 +24,11 @@ export class UserDTO extends BaseDTO {
 
   @ApiProperty({ example: 'jdoe', description: 'Unique login username' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   username: string;
 
   @ApiProperty({ example: 'secret', description: 'User password' })
-  @Exclude()
+  @IsString()
   password: string;
 
   @ApiProperty({
@@ -48,4 +57,14 @@ export class UserDTO extends BaseDTO {
   @IsOptional()
   @IsBoolean()
   isActive: boolean;
+
+
+  @ApiProperty({
+    type: BranchDTO,
+    description: 'Assigned branch',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => BranchDTO)
+  branch?: BranchDTO | null;  
 }

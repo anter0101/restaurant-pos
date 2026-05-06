@@ -60,22 +60,4 @@ export class AuthService {
     };
   }
 
-  async registerNewUser(newUser: UserDTO): Promise<User> {
-    const userFind = await this.userService.findByFields({
-      where: {
-        username: Equal(newUser.username),
-      },
-    });
-
-    if (userFind) {
-      throw new HttpException('Username_Exist', HttpStatus.BAD_REQUEST);
-    }
-
-    if (!newUser.role) {
-      newUser.role = UserRole.MANAGER;
-    }
-    const user = await this.userService.save(newUser, newUser.username, true);
-
-    return user;
-  }
 }
