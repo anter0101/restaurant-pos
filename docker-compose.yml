@@ -1,0 +1,32 @@
+# Local PostgreSQL only — for backend / frontend devs running the API with `pnpm run start:dev`.
+# Matches defaults in `.env.development` (override via `docker compose --env-file .env.development`).
+#
+#   docker compose up -d
+#   docker compose down
+#
+# Full stack (API + nginx + db): see `docker-compose.full.yml`
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-restaurant-pos-local}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-admin}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - restaurant_pos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-restaurant-pos-local}",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  restaurant_pos_pgdata:
