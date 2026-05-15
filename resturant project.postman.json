@@ -1282,7 +1282,7 @@
                 },
                 {
                     "name": "Get branches for menu item",
-                    "description": "GET /menu-items/:id/branches — grouped: { menuItemId, menuItem (+category), branches[] }",
+                    "description": "GET /menu-items/:id/branches — { itemId, branches: [{ branchId, price, isActive }] } (same as assign flat body)",
                     "event": [],
                     "auth": {},
                     "request": {
