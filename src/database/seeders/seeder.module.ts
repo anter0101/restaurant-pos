@@ -2,6 +2,7 @@ import { Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserSeederModule } from './user/user-seeder.module';
+import { KhataamSeederModule } from './khataam/khataam-seeder.module';
 import { Seeder } from './seeder';
 import PostgresTypeorm from 'src/config/db-config';
 
@@ -21,6 +22,7 @@ import PostgresTypeorm from 'src/config/db-config';
       inject: [PostgresTypeorm],
     }),
     UserSeederModule,
+    KhataamSeederModule,
   ],
   providers: [Logger, Seeder],
 })

@@ -1,14 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UserSeederService } from './user/user-seeder.service';
+import { KhataamSeederService } from './khataam/khataam-seeder.service';
 
 @Injectable()
 export class Seeder {
   constructor(
     private readonly logger: Logger,
     private readonly userSeederService: UserSeederService,
+    private readonly khataamSeederService: KhataamSeederService,
   ) {}
   async seed() {
-    // Seed Users
     await this.users()
       .then(() => {
         this.logger.debug('Successfully completed seeding users...');
@@ -18,15 +19,15 @@ export class Seeder {
         this.logger.error('Failed seeding users...');
         throw error;
       });
+
+    await this.khataam();
   }
 
   async users() {
     return await Promise.all(this.userSeederService.create())
       .then((createdUsers) => {
-        // Can also use this.logger.verbose('...');
         this.logger.debug(
           'No. of users created : ' +
-            // Remove all null values and return only created users.
             createdUsers.filter(
               (nullValueOrCreatedUser) => nullValueOrCreatedUser,
             ).length,
@@ -36,5 +37,15 @@ export class Seeder {
       .catch((error) => {
         throw error;
       });
+  }
+
+  async khataam() {
+    try {
+      await this.khataamSeederService.seed();
+      this.logger.debug('Successfully completed seeding Khataam menu...');
+    } catch (error) {
+      this.logger.error('Failed seeding Khataam menu...');
+      throw error;
+    }
   }
 }
