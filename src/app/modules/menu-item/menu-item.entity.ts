@@ -1,5 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/core/utils/base.entity';
+import { decimalNumberTransformer } from 'src/core/utils/decimal-number.transformer';
 import { MenuCategory } from '../menu-category/menu-category.entity';
 import { RelMenuBranch } from './rel-menu-branch.entity';
 
@@ -27,6 +28,7 @@ export class MenuItem extends BaseEntity {
     precision: 10,
     scale: 2,
     nullable: false,
+    transformer: decimalNumberTransformer,
   })
   defaultPrice: number;
 

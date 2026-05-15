@@ -6,6 +6,7 @@ import {
   PrimaryColumn,
   Unique,
 } from 'typeorm';
+import { decimalNumberTransformer } from 'src/core/utils/decimal-number.transformer';
 import { Branch } from '../branch/branch.entity';
 import { MenuItem } from './menu-item.entity';
 
@@ -18,7 +19,13 @@ export class RelMenuBranch {
   @PrimaryColumn({ name: 'menu_item_id' })
   menuItemId: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: decimalNumberTransformer,
+  })
   price: number;
 
   @Column({ name: 'is_active', type: 'boolean', nullable: false, default: true })

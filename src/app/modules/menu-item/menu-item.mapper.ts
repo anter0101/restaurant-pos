@@ -9,6 +9,8 @@ import { mapMenuCategoryToMenuCategoryDtoSelective } from '../menu-category/menu
 import { RelMenuBranch } from './rel-menu-branch.entity';
 import { AssignMenuItemBranchDTO } from './dtos/assign-menu-item-branch.dto';
 import { MenuItemBranchesPricingResponseDTO } from './dtos/menu-item-with-branch-assignments.dto';
+import { BranchDTO } from '../branch/dtos/branch.dto';
+import { mapBranchToBranchDtoSelective } from '../branch/branch.mapper';
 
 const allowedMenuItemDtoKeys: ReadonlyArray<keyof MenuItemDTO | keyof BaseDTO> =
   [
@@ -122,11 +124,11 @@ export const mapRelMenuBranchesToAssignMenuItemBranchDtos = (
 export const mapMenuItemToItemBranchesPricingDto = (
   menuItem: MenuItem,
 ): MenuItemBranchesPricingResponseDTO => ({
-  itemId: menuItem.id,
+  menuItem: mapMenuItemToMenuItemDtoSelective(menuItem) as MenuItemDTO,
   branches: [...(menuItem.branchRelations ?? [])]
     .sort((a, b) => a.branchId - b.branchId)
     .map((rel) => ({
-      branchId: rel.branchId,
+      branch: mapBranchToBranchDtoSelective(rel.branch) as BranchDTO,
       price: Number(rel.price),
       isActive: rel.isActive,
     })),

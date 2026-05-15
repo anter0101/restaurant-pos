@@ -6,7 +6,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { MenuItem } from './menu-item.entity';
 import { RelMenuBranch } from './rel-menu-branch.entity';
-import { FindManyOptions, FindOneOptions, In, Repository } from 'typeorm';
+import {
+  FindManyOptions,
+  FindOneOptions,
+  FindOptionsWhere,
+  In,
+  Not,
+  Repository,
+} from 'typeorm';
 import { UpdateMenuItemDTO } from './dtos/update-menu-item.dto';
 import { CreateMenuItemDTO } from './dtos/create-menu-item.dto';
 import {
@@ -43,6 +50,30 @@ export class MenuItemService {
     options: FindManyOptions<MenuItem>,
   ): Promise<[MenuItem[], number]> {
     return this.menuItemRepository.findAndCount(options);
+  }
+
+  async findOtherWithNameAr(
+    nameAr: string,
+    excludeId?: number,
+  ): Promise<MenuItem | undefined> {
+    const where: FindOptionsWhere<MenuItem> =
+      excludeId !== undefined
+        ? { nameAr, id: Not(excludeId) }
+        : { nameAr };
+    const result = await this.menuItemRepository.findOne({ where });
+    return result ?? undefined;
+  }
+
+  async findOtherWithNameEn(
+    nameEn: string,
+    excludeId?: number,
+  ): Promise<MenuItem | undefined> {
+    const where: FindOptionsWhere<MenuItem> =
+      excludeId !== undefined
+        ? { nameEn, id: Not(excludeId) }
+        : { nameEn };
+    const result = await this.menuItemRepository.findOne({ where });
+    return result ?? undefined;
   }
 
   async save(dto: CreateMenuItemDTO, creator?: string): Promise<MenuItem> {
@@ -114,6 +145,8 @@ export class MenuItemService {
     return this.menuItemRepository
       .createQueryBuilder('item')
       .leftJoinAndSelect('item.branchRelations', 'rel')
+      .leftJoinAndSelect('rel.branch', 'branch')
+      .leftJoinAndSelect('item.category', 'category')
       .where('item.id = :menuItemId', { menuItemId })
       .orderBy('rel.branch_id', 'ASC')
       .getOne();

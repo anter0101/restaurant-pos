@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BranchDTO } from '../../branch/dtos/branch.dto';
+import { MenuItemDTO } from './menu-item.dto';
 
-/** One row under `branches` in GET /menu-items/:id/branches (matches assign flat body lines). */
+/** One row under `branches` in GET /menu-items/:id/branches (price flags per branch; branch is hydrated). */
 export class MenuItemBranchPricingRowDTO {
   @ApiProperty({ example: 1 })
-  branchId: number;
+  branch: BranchDTO;
 
   @ApiProperty({ example: 15.5 })
   price: number;
@@ -12,10 +14,10 @@ export class MenuItemBranchPricingRowDTO {
   isActive: boolean;
 }
 
-/** Same shape as assign body: `{ itemId, branches: [{ branchId, price, isActive }] }`. */
+/** GET response: `{ menuItem, branches: [{ branch, price, isActive }] }`. */
 export class MenuItemBranchesPricingResponseDTO {
   @ApiProperty({ example: 1 })
-  itemId: number;
+  menuItem: MenuItemDTO;
 
   @ApiProperty({ type: [MenuItemBranchPricingRowDTO] })
   branches: MenuItemBranchPricingRowDTO[];

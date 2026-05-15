@@ -99,6 +99,60 @@ export class MenuItemController {
     }
   }
 
+  private async ensureMenuItemNamesUniqueForCreate(
+    nameAr: string,
+    nameEn?: string,
+  ): Promise<void> {
+    const duplicateAr =
+      await this.menuItemService.findOtherWithNameAr(nameAr);
+    if (duplicateAr) {
+      throw new BadRequestException(
+        `Menu item with Arabic name ${nameAr} already exists`,
+      );
+    }
+    if (nameEn != null && nameEn !== '') {
+      const duplicateEn =
+        await this.menuItemService.findOtherWithNameEn(nameEn);
+      if (duplicateEn) {
+        throw new BadRequestException(
+          `Menu item with English name ${nameEn} already exists`,
+        );
+      }
+    }
+  }
+
+  private async ensureMenuItemNamesUniqueForUpdate(
+    itemId: number,
+    itemDTO: UpdateMenuItemDTO,
+  ): Promise<void> {
+    if (itemDTO.nameAr !== undefined) {
+      const duplicateAr = await this.menuItemService.findOtherWithNameAr(
+        itemDTO.nameAr,
+        itemId,
+      );
+      if (duplicateAr) {
+        throw new BadRequestException(
+          `Menu item with Arabic name ${itemDTO.nameAr} already exists`,
+        );
+      }
+    }
+    if (
+      itemDTO.nameEn !== undefined &&
+      itemDTO.nameEn !== null &&
+      itemDTO.nameEn !== ''
+    ) {
+      const duplicateEn = await this.menuItemService.findOtherWithNameEn(
+        itemDTO.nameEn,
+        itemId,
+      );
+      if (duplicateEn) {
+        throw new BadRequestException(
+          `Menu item with English name ${itemDTO.nameEn} already exists`,
+        );
+      }
+    }
+  }
+
   @Get('/')
   @Roles(UserRole.ADMIN, UserRole.USER)
   @ApiOperation({ summary: 'Get the list of menu items paginated' })
@@ -140,11 +194,12 @@ export class MenuItemController {
   @Get('/:id/branches')
   @Roles(UserRole.ADMIN, UserRole.USER)
   @ApiOperation({
-    summary: 'Item id + branch prices (same shape as assign flat body)',
+    summary: 'Menu item + per-branch pricing (nested branch details)',
   })
   @ApiResponse({
     status: 200,
-    description: '{ itemId, branches: [{ branchId, price, isActive }] }',
+    description:
+      '{ menuItem, branches: [{ branch, price, isActive }] }',
     type: MenuItemBranchesPricingResponseDTO,
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -219,6 +274,7 @@ export class MenuItemController {
     @AuthUser() user: User,
   ): Promise<MenuItem> {
     await this.ensureMenuCategoryExists(dto.menuCategoryId);
+    await this.ensureMenuItemNamesUniqueForCreate(dto.nameAr, dto.nameEn);
     return this.menuItemService.save(dto, user?.username);
   }
 
@@ -284,6 +340,7 @@ export class MenuItemController {
     if (itemDTO.menuCategoryId !== undefined) {
       await this.ensureMenuCategoryExists(itemDTO.menuCategoryId);
     }
+    await this.ensureMenuItemNamesUniqueForUpdate(id, itemDTO);
     itemDTO.id = id;
     return this.menuItemService.update(itemDTO, user?.username);
   }
