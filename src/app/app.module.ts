@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './modules/user/user.module';
 import { BranchModule } from './modules/branch/branch.module';
+import { MenuCategoryModule } from './modules/menu-category/menu-category.module';
+import { MenuItemModule } from './modules/menu-item/menu-item.module';
 import { AuthModule } from './modules/auth/auth.module';
 import PostgresTypeorm from 'src/config/db-config';
 
@@ -19,6 +21,8 @@ import PostgresTypeorm from 'src/config/db-config';
     AuthModule,
     UserModule,
     BranchModule,
+    MenuCategoryModule,
+    MenuItemModule,
   ],
   controllers: [],
   providers: [],
