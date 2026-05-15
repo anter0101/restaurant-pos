@@ -12,52 +12,142 @@ import { MenuItemBranchesPricingResponseDTO } from './dtos/menu-item-with-branch
 import { BranchDTO } from '../branch/dtos/branch.dto';
 import { mapBranchToBranchDtoSelective } from '../branch/branch.mapper';
 
-const allowedMenuItemDtoKeys: ReadonlyArray<keyof MenuItemDTO | keyof BaseDTO> =
-  [
-    'id',
-    'nameAr',
-    'nameEn',
-    'description',
-    'defaultPrice',
-    'isActive',
-    'category',
-    'createdAt',
-    'updatedAt',
-    'createdBy',
-    'updatedBy',
-    'deletedAt',
-    'deletedBy',
-  ] as const;
+export type MenuItemDtoSelectableKey = keyof MenuItemDTO | keyof BaseDTO;
+
+/** Fields copied from `MenuItem` entity (excludes synthetic branch projection keys). */
+const ENTITY_MENU_ITEM_MAP_KEYS = [
+  'id',
+  'nameAr',
+  'nameEn',
+  'description',
+  'defaultPrice',
+  'isActive',
+  'category',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'deletedAt',
+  'deletedBy',
+] as const satisfies readonly MenuItemDtoSelectableKey[];
+
+/** Derived only when `branchId` is passed and relation rows are loaded. */
+const SYNTHETIC_BRANCH_KEYS = ['branchPrice', 'branchRelation'] as const;
+
+const ALL_SELECTABLE_MENU_ITEM_KEYS = [
+  ...ENTITY_MENU_ITEM_MAP_KEYS,
+  ...SYNTHETIC_BRANCH_KEYS,
+] as const satisfies readonly MenuItemDtoSelectableKey[];
+
+/** Default list projection used by GET /menu-items (keep in sync with controller). */
+export const MENU_ITEM_LIST_SELECT_KEYS = [
+  'id',
+  'nameAr',
+  'nameEn',
+  'description',
+  'defaultPrice',
+  'branchPrice',
+  'isActive',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'deletedAt',
+  'deletedBy',
+] as const satisfies readonly MenuItemDtoSelectableKey[];
+
+function resolveBranchFilterId(
+  branchId?: number | string | null,
+): number | undefined {
+  if (
+    branchId === undefined ||
+    branchId === null ||
+    (typeof branchId === 'string' && branchId.trim() === '')
+  ) {
+    return undefined;
+  }
+  const bid = Number(branchId);
+  return Number.isNaN(bid) ? undefined : bid;
+}
+
+export const mapRelMenuBranchToAssignMenuItemBranchDto = (
+  rel: RelMenuBranch,
+): AssignMenuItemBranchDTO => ({
+  menuItemId: rel.menuItemId,
+  branchId: rel.branchId,
+  price: Number(rel.price),
+  isActive: rel.isActive,
+});
+
+export const mapRelMenuBranchesToAssignMenuItemBranchDtos = (
+  rels: RelMenuBranch[],
+): AssignMenuItemBranchDTO[] =>
+  rels.map(mapRelMenuBranchToAssignMenuItemBranchDto);
 
 export function mapMenuItemToMenuItemDtoSelective(
   item: MenuItem,
-  keys?: (keyof MenuItemDTO | keyof BaseDTO)[],
+  keys?: MenuItemDtoSelectableKey[],
+  branchId?: number | string | null,
 ): Partial<MenuItemDTO>;
 export function mapMenuItemToMenuItemDtoSelective(
   items: MenuItem[],
-  keys?: (keyof MenuItemDTO | keyof BaseDTO)[],
+  keys?: MenuItemDtoSelectableKey[],
+  branchId?: number | string | null,
 ): Partial<MenuItemDTO>[];
 export function mapMenuItemToMenuItemDtoSelective(
   itemOrItems: MenuItem | MenuItem[],
-  keys?: (keyof MenuItemDTO | keyof BaseDTO)[],
+  keys?: MenuItemDtoSelectableKey[],
+  branchId?: number | string | null,
 ): Partial<MenuItemDTO> | Partial<MenuItemDTO>[] {
   const mapSingle = (item: MenuItem): Partial<MenuItemDTO> => {
     const dto: Partial<MenuItemDTO> = {};
 
-    const keysToMap = (keys || allowedMenuItemDtoKeys).filter((key) =>
-      allowedMenuItemDtoKeys.includes(key),
+    const explicitKeys = keys !== undefined;
+    const keysResolved = (
+      explicitKeys ? keys : [...ENTITY_MENU_ITEM_MAP_KEYS]
+    ).filter((key) =>
+      (ALL_SELECTABLE_MENU_ITEM_KEYS as readonly string[]).includes(key),
     );
 
-    keysToMap.forEach((key) => {
+    const wantsBranchPrice =
+      !explicitKeys || keysResolved.includes('branchPrice');
+    const wantsBranchRelation =
+      !explicitKeys || keysResolved.includes('branchRelation');
+
+    keysResolved.forEach((key) => {
+      if (key === 'branchPrice' || key === 'branchRelation') {
+        return;
+      }
+      if (key === 'category') {
+        if (item.category) {
+          (dto as any)[key] = mapMenuCategoryToMenuCategoryDtoSelective(
+            item.category,
+          );
+        }
+        return;
+      }
       if (key in item && item[key as keyof MenuItem] !== undefined) {
         (dto as any)[key] = item[key as keyof MenuItem];
       }
-      if (key === 'category' && item.category) {
-        (dto as any)[key] = mapMenuCategoryToMenuCategoryDtoSelective(
-          item.category,
-        );
-      }
     });
+
+    const bid = resolveBranchFilterId(branchId);
+    if (
+      bid !== undefined &&
+      (wantsBranchPrice || wantsBranchRelation)
+    ) {
+      const rel = item.branchRelations?.find(
+        (r) => Number(r.branchId) === bid,
+      );
+      if (rel) {
+        if (wantsBranchPrice) {
+          dto.branchPrice = Number(rel.price);
+        }
+        if (wantsBranchRelation) {
+          dto.branchRelation = mapRelMenuBranchToAssignMenuItemBranchDto(rel);
+        }
+      }
+    }
 
     return dto;
   };
@@ -106,20 +196,6 @@ export const mapUpdateMenuItemDtoToEntity = (dto: UpdateMenuItemDTO): MenuItem =
 
   return item;
 };
-
-export const mapRelMenuBranchToAssignMenuItemBranchDto = (
-  rel: RelMenuBranch,
-): AssignMenuItemBranchDTO => ({
-  menuItemId: rel.menuItemId,
-  branchId: rel.branchId,
-  price: Number(rel.price),
-  isActive: rel.isActive,
-});
-
-export const mapRelMenuBranchesToAssignMenuItemBranchDtos = (
-  rels: RelMenuBranch[],
-): AssignMenuItemBranchDTO[] =>
-  rels.map(mapRelMenuBranchToAssignMenuItemBranchDto);
 
 export const mapMenuItemToItemBranchesPricingDto = (
   menuItem: MenuItem,

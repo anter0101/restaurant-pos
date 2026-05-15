@@ -34,7 +34,6 @@ export class MenuItemService {
   async findById(id: number): Promise<MenuItem | undefined> {
     const result = await this.menuItemRepository.findOne({
       where: { id },
-      relations: ['category'],
     });
     return result ?? undefined;
   }

@@ -30,6 +30,7 @@ import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
 import {
   mapMenuItemToMenuItemDtoSelective,
+  MENU_ITEM_LIST_SELECT_KEYS,
   mapMenuItemToItemBranchesPricingDto,
   mapRelMenuBranchesToAssignMenuItemBranchDtos,
 } from './menu-item.mapper';
@@ -46,6 +47,7 @@ import {
   AssignOneMenuItemBranchesDTO,
 } from './dtos/assign-menu-item-branch.dto';
 import { MenuItemBranchesPricingResponseDTO } from './dtos/menu-item-with-branch-assignments.dto';
+import { FindManyOptions, FindOptionsWhere } from 'typeorm';
 
 @Controller('menu-items')
 @ApiBearerAuth()
@@ -155,7 +157,11 @@ export class MenuItemController {
 
   @Get('/')
   @Roles(UserRole.ADMIN, UserRole.USER)
-  @ApiOperation({ summary: 'Get the list of menu items paginated' })
+  @ApiOperation({
+    summary: 'Get the list of menu items paginated',
+    description:
+      'With query `branchId`, each row includes `branchPrice` and `branchRelation` ({ menuItemId, branchId, price, isActive }) for that assignment.',
+  })
   @ApiResponse({
     status: 200,
     description: 'List all menu items',
@@ -172,14 +178,42 @@ export class MenuItemController {
       query.sortField ? `${query.sortField},${query.sortOrder || 'ASC'}` : '',
     );
 
-    const [results, count] = await this.menuItemService.findAndCount({
+    if (query.menuCategoryId !== undefined) {
+      await this.ensureMenuCategoryExists(query.menuCategoryId);
+    }
+    if (query.branchId !== undefined) {
+      await this.ensureBranchExists(query.branchId);
+    }
+
+    const where: FindOptionsWhere<MenuItem> = {};
+    if (query.menuCategoryId !== undefined) {
+      where.category = { id: query.menuCategoryId };
+    }
+    if (query.branchId !== undefined) {
+      where.branchRelations = { branchId: query.branchId };
+    }
+
+    const findManyOptions: FindManyOptions<MenuItem> = {
       skip: +pageRequest.page * pageRequest.size,
       take: +pageRequest.size,
       order: pageRequest.sort.asOrder(),
-      relations: ['category'],
-    });
+      relations:
+        query.branchId !== undefined
+          ? ['branchRelations']
+          : [],
+    };
+    if (Object.keys(where).length > 0) {
+      findManyOptions.where = where;
+    }
 
-    const itemDtos = mapMenuItemToMenuItemDtoSelective(results);
+    const [results, count] =
+      await this.menuItemService.findAndCount(findManyOptions);
+
+    const itemDtos = mapMenuItemToMenuItemDtoSelective(
+      results,
+      [...MENU_ITEM_LIST_SELECT_KEYS],
+      query.branchId,
+    );
 
     HeaderUtil.addPaginationHeaders(
       req.res!,

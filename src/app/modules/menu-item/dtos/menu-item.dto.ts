@@ -1,14 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
   IsOptional,
   IsBoolean,
   IsNumber,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { MenuCategoryDTO } from '../../menu-category/dtos/menu-category.dto';
+import { AssignMenuItemBranchDTO } from './assign-menu-item-branch.dto';
 
 export class MenuItemDTO extends BaseDTO {
   @ApiProperty({ example: 'قهوة', description: 'Item name in Arabic' })
@@ -57,4 +59,24 @@ export class MenuItemDTO extends BaseDTO {
   @IsOptional()
   @Type(() => MenuCategoryDTO)
   category?: MenuCategoryDTO;
+
+  @ApiPropertyOptional({
+    example: 15.5,
+    description:
+      'Price for the requested branch (only returned when listing with query param `branchId`)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  branchPrice?: number;
+
+  @ApiPropertyOptional({
+    type: () => AssignMenuItemBranchDTO,
+    description:
+      'Flat assignment DTO for the requested branch (`menuItemId`, `branchId`, `price`, `isActive`) when listing with `branchId`',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AssignMenuItemBranchDTO)
+  branchRelation?: AssignMenuItemBranchDTO;
 }

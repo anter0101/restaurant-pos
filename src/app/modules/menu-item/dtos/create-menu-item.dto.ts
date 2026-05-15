@@ -6,6 +6,8 @@ import { IsNumber, IsNotEmpty } from 'class-validator';
 export class CreateMenuItemDTO extends OmitType(MenuItemDTO, [
   'id',
   'category',
+  'branchPrice',
+  'branchRelation',
 ] as const) {
   @ApiProperty({
     type: Number,
