@@ -25,9 +25,8 @@ import { AuthGuard, Roles, RolesGuard, AuthUser } from 'src/core/security';
 import { MenuItemDTO } from './dtos/menu-item.dto';
 import { CreateMenuItemDTO } from './dtos/create-menu-item.dto';
 import { UserRole } from 'src/core/enums/user-role';
-import { PageRequest } from 'src/core/utils/pagination.entity';
-import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
+import { buildSearchQuery, setPaginationHeaders } from 'src/core/utils/search-query.builder';
 import {
   mapMenuItemToMenuItemDtoSelective,
   MENU_ITEM_LIST_SELECT_KEYS,
@@ -47,7 +46,7 @@ import {
   AssignOneMenuItemBranchesDTO,
 } from './dtos/assign-menu-item-branch.dto';
 import { MenuItemBranchesPricingResponseDTO } from './dtos/menu-item-with-branch-assignments.dto';
-import { FindManyOptions, FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere } from 'typeorm';
 
 @Controller('menu-items')
 @ApiBearerAuth()
@@ -172,12 +171,6 @@ export class MenuItemController {
     @Req() req: Request,
     @Query() query: MenuItemQueryDTO,
   ): Promise<Partial<MenuItemDTO>[]> {
-    const pageRequest: PageRequest = new PageRequest(
-      +(query.page ?? 1),
-      +(query.pageSize ?? 10),
-      query.sortField ? `${query.sortField},${query.sortOrder || 'ASC'}` : '',
-    );
-
     if (query.menuCategoryId !== undefined) {
       await this.ensureMenuCategoryExists(query.menuCategoryId);
     }
@@ -193,21 +186,15 @@ export class MenuItemController {
       where.branchRelations = { branchId: query.branchId };
     }
 
-    const findManyOptions: FindManyOptions<MenuItem> = {
-      skip: +pageRequest.page * pageRequest.size,
-      take: +pageRequest.size,
-      order: pageRequest.sort.asOrder(),
-      relations:
-        query.branchId !== undefined
-          ? ['branchRelations']
-          : [],
-    };
-    if (Object.keys(where).length > 0) {
-      findManyOptions.where = where;
-    }
+    const findOptions = buildSearchQuery<MenuItem>({
+      query,
+      searchableColumns: ['nameAr', 'nameEn', 'description'],
+      where: Object.keys(where).length > 0 ? where : undefined,
+      relations: query.branchId !== undefined ? ['branchRelations'] : [],
+    });
 
     const [results, count] =
-      await this.menuItemService.findAndCount(findManyOptions);
+      await this.menuItemService.findAndCount(findOptions);
 
     const itemDtos = mapMenuItemToMenuItemDtoSelective(
       results,
@@ -215,13 +202,7 @@ export class MenuItemController {
       query.branchId,
     );
 
-    HeaderUtil.addPaginationHeaders(
-      req.res!,
-      count,
-      pageRequest.page,
-      count > pageRequest.page * pageRequest.size,
-    );
-
+    setPaginationHeaders(req, count, query);
     return itemDtos;
   }
 

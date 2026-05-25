@@ -25,9 +25,8 @@ import { AuthGuard, Roles, RolesGuard, AuthUser } from 'src/core/security';
 import { MenuCategoryDTO } from './dtos/menu-category.dto';
 import { CreateMenuCategoryDTO } from './dtos/create-menu-category.dto';
 import { UserRole } from 'src/core/enums/user-role';
-import { PageRequest } from 'src/core/utils/pagination.entity';
-import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
+import { buildSearchQuery, setPaginationHeaders } from 'src/core/utils/search-query.builder';
 import { mapMenuCategoryToMenuCategoryDtoSelective } from './menu-category.mapper';
 import { UpdateMenuCategoryDTO } from './dtos/update-menu-category.dto';
 import { MenuCategory } from './menu-category.entity';
@@ -75,29 +74,16 @@ export class MenuCategoryController {
     @Req() req: Request,
     @Query() query: MenuCategoryQueryDTO,
   ): Promise<Partial<MenuCategoryDTO>[]> {
-    const pageRequest: PageRequest = new PageRequest(
-      +(query.page ?? 1),
-      +(query.pageSize ?? 10),
-      query.sortField ? `${query.sortField},${query.sortOrder || 'ASC'}` : '',
-    );
-
-    const [results, count] = await this.menuCategoryService.findAndCount({
-      skip: +pageRequest.page * pageRequest.size,
-      take: +pageRequest.size,
-      order: pageRequest.sort.asOrder(),
+    const findOptions = buildSearchQuery<MenuCategory>({
+      query,
+      searchableColumns: ['nameAr', 'nameEn'],
     });
 
-    const categoryDtos =
-      mapMenuCategoryToMenuCategoryDtoSelective(results);
+    const [results, count] =
+      await this.menuCategoryService.findAndCount(findOptions);
 
-    HeaderUtil.addPaginationHeaders(
-      req.res!,
-      count,
-      pageRequest.page,
-      count > pageRequest.page * pageRequest.size,
-    );
-
-    return categoryDtos;
+    setPaginationHeaders(req, count, query);
+    return mapMenuCategoryToMenuCategoryDtoSelective(results);
   }
 
   @Get('/:id')

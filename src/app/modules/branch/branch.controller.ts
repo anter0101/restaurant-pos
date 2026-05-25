@@ -25,9 +25,8 @@ import { AuthGuard, Roles, RolesGuard, AuthUser } from 'src/core/security';
 import { BranchDTO } from './dtos/branch.dto';
 import { CreateBranchDTO } from './dtos/create-branch.dto';
 import { UserRole } from 'src/core/enums/user-role';
-import { PageRequest } from 'src/core/utils/pagination.entity';
-import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
+import { buildSearchQuery, setPaginationHeaders } from 'src/core/utils/search-query.builder';
 import { mapBranchToBranchDtoSelective } from './branch.mapper';
 import { UpdateBranchDTO } from './dtos/update-branch.dto';
 import { Branch } from './branch.entity';
@@ -68,28 +67,16 @@ export class BranchController {
     @Req() req: Request,
     @Query() query: BranchQueryDTO,
   ): Promise<Partial<BranchDTO>[]> {
-    const pageRequest: PageRequest = new PageRequest(
-      +(query.page ?? 1),
-      +(query.pageSize ?? 10),
-      query.sortField ? `${query.sortField},${query.sortOrder || 'ASC'}` : '',
-    );
-
-    const [results, count] = await this.branchService.findAndCount({
-      skip: +pageRequest.page * pageRequest.size,
-      take: +pageRequest.size,
-      order: pageRequest.sort.asOrder(),
+    const findOptions = buildSearchQuery<Branch>({
+      query,
+      searchableColumns: ['name', 'address', 'phone'],
     });
 
-    const branchDtos = mapBranchToBranchDtoSelective(results);
+    const [results, count] =
+      await this.branchService.findAndCount(findOptions);
 
-    HeaderUtil.addPaginationHeaders(
-      req.res!,
-      count,
-      pageRequest.page,
-      count > pageRequest.page * pageRequest.size,
-    );
-
-    return branchDtos;
+    setPaginationHeaders(req, count, query);
+    return mapBranchToBranchDtoSelective(results);
   }
 
   @Get('/:id')

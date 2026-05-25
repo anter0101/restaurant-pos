@@ -25,9 +25,8 @@ import { AuthGuard, Roles, RolesGuard, AuthUser } from 'src/core/security';
 import { UserDTO } from './dtos/user.dto';
 import { CreateUserDTO } from './dtos/create-user.dto';
 import { UserRole } from 'src/core/enums/user-role';
-import { PageRequest } from 'src/core/utils/pagination.entity';
-import { HeaderUtil } from 'src/core/utils/header-util';
 import type { Request } from 'src/core/utils/request';
+import { buildSearchQuery, setPaginationHeaders } from 'src/core/utils/search-query.builder';
 import { mapCreateUserDtoToEntity, mapUpdateUserDtoToEntity, mapUserToUserDtoSelective } from './user.mapper';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import { User } from './user.entity';
@@ -90,29 +89,17 @@ export class UserController {
     @Req() req: Request,
     @Query() query: UserQueryDTO,
   ): Promise<Partial<UserDTO>[]> {
-    const pageRequest: PageRequest = new PageRequest(
-      +(query.page ?? 1),
-      +(query.pageSize ?? 10),
-      query.sortField ? `${query.sortField},${query.sortOrder || 'ASC'}` : '',
-    );
-
-    const [results, count] = await this.userService.findAndCount({
-      skip: +pageRequest.page * pageRequest.size,
-      take: +pageRequest.size,
-      order: pageRequest.sort.asOrder(),
+    const findOptions = buildSearchQuery<User>({
+      query,
+      searchableColumns: ['name', 'username', 'phone'],
       relations: ['branch'],
     });
 
-    const userDtos = mapUserToUserDtoSelective(results);
+    const [results, count] =
+      await this.userService.findAndCount(findOptions);
 
-    HeaderUtil.addPaginationHeaders(
-      req.res!,
-      count,
-      pageRequest.page,
-      count > pageRequest.page * pageRequest.size,
-    );
-
-    return userDtos;
+    setPaginationHeaders(req, count, query);
+    return mapUserToUserDtoSelective(results);
   }
 
 
