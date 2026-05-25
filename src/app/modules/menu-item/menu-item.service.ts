@@ -151,6 +151,33 @@ export class MenuItemService {
       .getOne();
   }
 
+  async replaceItemBranches(
+    itemId: number,
+    branches: AssignMenuItemBranchEntryDTO[],
+  ): Promise<RelMenuBranch[]> {
+    if (!branches.length) {
+      throw new BadRequestException('At least one branch is required');
+    }
+
+    const branchIds = branches.map((b) => b.branchId);
+    if (new Set(branchIds).size !== branchIds.length) {
+      throw new BadRequestException('Duplicate branchId in request');
+    }
+
+    await this.relMenuBranchRepository.delete({ menuItemId: itemId });
+
+    const entities = branches.map((b) => {
+      const rel = new RelMenuBranch();
+      rel.menuItemId = itemId;
+      rel.branchId = b.branchId;
+      rel.price = b.price;
+      rel.isActive = b.isActive ?? true;
+      return rel;
+    });
+
+    return this.relMenuBranchRepository.save(entities);
+  }
+
   async updateItemBranchesBulk(
     itemId: number,
     branches: AssignMenuItemBranchEntryDTO[],

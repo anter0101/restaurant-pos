@@ -1,7 +1,8 @@
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { MenuItemDTO } from './menu-item.dto';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional } from 'class-validator';
+import { IsArray, ArrayMinSize, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import { reLBranchItemDTO } from './create-menu-item.dto';
 
 export class UpdateMenuItemDTO extends PartialType(
   OmitType(MenuItemDTO, ['branchPrice', 'branchRelation'] as const),
@@ -15,4 +16,12 @@ export class UpdateMenuItemDTO extends PartialType(
   @Type(() => Number)
   @IsNumber()
   menuCategoryId?: number;
-}
+
+  @ApiProperty({ type: [reLBranchItemDTO] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => reLBranchItemDTO)
+  @IsOptional()
+  branches?: reLBranchItemDTO[]; 
+} 

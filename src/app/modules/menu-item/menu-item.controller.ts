@@ -309,7 +309,24 @@ export class MenuItemController {
   ): Promise<MenuItem> {
     await this.ensureMenuCategoryExists(dto.menuCategoryId);
     await this.ensureMenuItemNamesUniqueForCreate(dto.nameAr, dto.nameEn);
-    return this.menuItemService.save(dto, user?.username);
+
+    if (dto.branches?.length) {
+      for (const b of dto.branches) {
+        await this.ensureBranchExists(b.branchId);
+      }
+    }
+
+    const item = await this.menuItemService.save(dto, user?.username);
+
+    if (dto.branches?.length) {
+      const rels = await this.menuItemService.assignItemToBranchesBulk(
+        item.id,
+        dto.branches,
+      );
+      item.branchRelations = rels;
+    }
+
+    return item;
   }
 
 
@@ -375,8 +392,21 @@ export class MenuItemController {
       await this.ensureMenuCategoryExists(itemDTO.menuCategoryId);
     }
     await this.ensureMenuItemNamesUniqueForUpdate(id, itemDTO);
+
+    if (itemDTO.branches?.length) {
+      for (const b of itemDTO.branches) {
+        await this.ensureBranchExists(b.branchId);
+      }
+    }
+
     itemDTO.id = id;
-    return this.menuItemService.update(itemDTO, user?.username);
+    const result = await this.menuItemService.update(itemDTO, user?.username);
+
+    if (itemDTO.branches?.length) {
+      await this.menuItemService.replaceItemBranches(id, itemDTO.branches);
+    }
+
+    return result;
   }
 
   @Delete('/:id')
