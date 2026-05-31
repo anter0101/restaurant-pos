@@ -125,8 +125,12 @@ export class MenuItemController {
   private async ensureMenuItemNamesUniqueForUpdate(
     itemId: number,
     itemDTO: UpdateMenuItemDTO,
+    existing: MenuItem,
   ): Promise<void> {
-    if (itemDTO.nameAr !== undefined) {
+    if (
+      itemDTO.nameAr !== undefined &&
+      itemDTO.nameAr !== existing.nameAr
+    ) {
       const duplicateAr = await this.menuItemService.findOtherWithNameAr(
         itemDTO.nameAr,
         itemId,
@@ -139,6 +143,7 @@ export class MenuItemController {
     }
     if (
       itemDTO.nameEn !== undefined &&
+      itemDTO.nameEn !== existing.nameEn &&
       itemDTO.nameEn !== null &&
       itemDTO.nameEn !== ''
     ) {
@@ -365,14 +370,20 @@ export class MenuItemController {
     @Body() itemDTO: UpdateMenuItemDTO,
     @AuthUser() user: User,
   ): Promise<UpdateMenuItemDTO> {
-    const existing = await this.menuItemService.findById(id);
+    const existing = await this.menuItemService.findByFields({
+      where: { id },
+      relations: ['category'],
+    });
     if (!existing) {
       throw new NotFoundException(`Menu item with id ${id} not found`);
     }
-    if (itemDTO.menuCategoryId !== undefined) {
+    if (
+      itemDTO.menuCategoryId !== undefined &&
+      itemDTO.menuCategoryId !== existing.category?.id
+    ) {
       await this.ensureMenuCategoryExists(itemDTO.menuCategoryId);
     }
-    await this.ensureMenuItemNamesUniqueForUpdate(id, itemDTO);
+    await this.ensureMenuItemNamesUniqueForUpdate(id, itemDTO, existing);
 
     if (itemDTO.branches?.length) {
       for (const b of itemDTO.branches) {

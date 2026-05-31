@@ -44,20 +44,34 @@ export class MenuCategoryController {
 
   constructor(private readonly menuCategoryService: MenuCategoryService) {}
 
-  private async ensureCategorNameIsUnique(nameAr: string, nameEn?:string): Promise<void> {
-
-    // or where nameEn is not null and nameEn = name_en or nameAr = name_ar
-    const existing = await this.menuCategoryService.findByFields({
-      where: [
-        { nameAr: nameAr ? ILike(nameAr) : undefined },
-        { nameEn: nameEn ? ILike(nameEn) : undefined },
-      ],
-    });
-    if (existing) {
-      throw new BadRequestException(`Menu category with name ${nameAr} already exists`);
+  private async ensureCategorNameIsUnique(
+    nameAr?: string,
+    nameEn?: string,
+  ): Promise<void> {
+    const conditions: { nameAr?: ReturnType<typeof ILike>; nameEn?: ReturnType<typeof ILike> }[] =
+      [];
+    if (nameAr) {
+      conditions.push({ nameAr: ILike(nameAr) });
     }
-    if (existing) {
-      throw new BadRequestException(`Menu category with name ${nameEn} already exists`);
+    if (nameEn) {
+      conditions.push({ nameEn: ILike(nameEn) });
+    }
+    if (!conditions.length) {
+      return;
+    }
+
+    const duplicate = await this.menuCategoryService.findByFields({
+      where: conditions,
+    });
+    if (duplicate) {
+      if (nameAr && duplicate.nameAr.toLowerCase() === nameAr.toLowerCase()) {
+        throw new BadRequestException(
+          `Menu category with Arabic name ${nameAr} already exists`,
+        );
+      }
+      throw new BadRequestException(
+        `Menu category with English name ${nameEn} already exists`,
+      );
     }
   }
 
@@ -140,8 +154,17 @@ export class MenuCategoryController {
     if (!existing) {
       throw new NotFoundException(`Menu category with id ${id} not found`);
     }
-    if (categoryDTO.nameAr !== undefined) {
-      await this.ensureCategorNameIsUnique(categoryDTO.nameAr, categoryDTO.nameEn);
+    const nameArChanged =
+      categoryDTO.nameAr !== undefined &&
+      categoryDTO.nameAr !== existing.nameAr;
+    const nameEnChanged =
+      categoryDTO.nameEn !== undefined &&
+      categoryDTO.nameEn !== existing.nameEn;
+    if (nameArChanged || nameEnChanged) {
+      await this.ensureCategorNameIsUnique(
+        nameArChanged ? categoryDTO.nameAr : undefined,
+        nameEnChanged ? categoryDTO.nameEn : undefined,
+      );
     }
     categoryDTO.id = id;
     return this.menuCategoryService.update(categoryDTO, user?.username);

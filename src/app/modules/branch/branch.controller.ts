@@ -131,7 +131,10 @@ export class BranchController {
     if (!existing) {
       throw new NotFoundException(`Branch with id ${id} not found`);
     } 
-    if(branchDTO.name !== undefined) {
+    if (
+      branchDTO.name !== undefined &&
+      branchDTO.name !== existing.name
+    ) {
       await this.ensureBranchNameIsUnique(branchDTO.name);
     }
     branchDTO.id = id;

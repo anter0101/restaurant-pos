@@ -138,15 +138,13 @@ export class UserController {
       await this.ensureUsernameIsUnique(userDTO.username);
     }
     if(userDTO.phone !== undefined) {
-      await this.ensurePhoneIsUnique(userDTO.phone);
+        await this.ensurePhoneIsUnique(userDTO.phone);
     }
     if(userDTO.branchId !== undefined) {
       await this.ensureBranchExistsWhenProvided(userDTO.branchId);
     }
-
     const userEntity = mapCreateUserDtoToEntity(userDTO);
-    const created = await this.userService.save(userEntity, user?.username, true);
-    return created;
+    return this.userService.save(userEntity, user?.username, true);
   }
 
   @Put('/:id')
@@ -169,13 +167,13 @@ export class UserController {
       throw new NotFoundException(`User with id ${id} not found`);
     }
    
-    if(userDTO.username !== undefined) {
+    if(userDTO.username !== undefined && userDTO.username !== existing.username) {
       await this.ensureUsernameIsUnique(userDTO.username);
     }
-    if(userDTO.phone !== undefined) {
+    if(userDTO.phone !== undefined && userDTO.phone !== existing.phone) {
       await this.ensurePhoneIsUnique(userDTO.phone);
     }
-    if(userDTO.branchId !== undefined) {
+    if(userDTO.branchId !== undefined && userDTO.branchId !== existing.branch?.id) {
       await this.ensureBranchExistsWhenProvided(userDTO.branchId);
     }
 
