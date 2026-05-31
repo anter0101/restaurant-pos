@@ -32,7 +32,7 @@ import { UpdateMenuCategoryDTO } from './dtos/update-menu-category.dto';
 import { MenuCategory } from './menu-category.entity';
 import { MenuCategoryQueryDTO } from './dtos/menu-category-query.dto';
 import { User } from '../user/user.entity';
-import { ILike } from 'typeorm';
+import { FindOptionsWhere, ILike } from 'typeorm';
 
 @Controller('menu-categories')
 @ApiBearerAuth()
@@ -48,8 +48,7 @@ export class MenuCategoryController {
     nameAr?: string,
     nameEn?: string,
   ): Promise<void> {
-    const conditions: { nameAr?: ReturnType<typeof ILike>; nameEn?: ReturnType<typeof ILike> }[] =
-      [];
+    const conditions: FindOptionsWhere<MenuCategory>[] = [];
     if (nameAr) {
       conditions.push({ nameAr: ILike(nameAr) });
     }
