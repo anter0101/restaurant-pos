@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { OrderService } from './order.service';
+import { OrderController } from './order.controller';
 import { Branch } from '../branch/branch.entity';
 import { User } from '../user/user.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
@@ -23,6 +24,7 @@ import { RelMenuBranch } from '../menu-item/rel-menu-branch.entity';
       RelMenuBranch,
     ]),
   ],
+  controllers: [OrderController],
   providers: [OrderService],
   exports: [OrderService],
 })
