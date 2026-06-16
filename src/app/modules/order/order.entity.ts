@@ -1,0 +1,100 @@
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { BaseEntity } from 'src/core/utils/base.entity';
+import { decimalNumberTransformer } from 'src/core/utils/decimal-number.transformer';
+import { OrderStatus } from 'src/core/enums/order-status';
+import { Branch } from '../branch/branch.entity';
+import { User } from '../user/user.entity';
+import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
+import { ShiftManagement } from '../shift-management/shift-management.entity';
+import { OrderItem } from './order-item.entity';
+@Entity('orders')
+export class Order extends BaseEntity {
+  @ManyToOne(() => Branch, (branch) => branch.orders, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'branch_id' })
+  branch: Branch;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'customer_id' })
+  customer?: User;
+
+  @ManyToOne(() => DeliveryRegion, (region) => region.orders, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'delivery_region_id' })
+  deliveryRegion?: DeliveryRegion;
+
+  @ManyToOne(() => ShiftManagement, (shift) => shift.orders, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'shift_management_id' })
+  shift?: ShiftManagement;
+
+  @Column({
+    name: 'total_amount',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: false,
+    transformer: decimalNumberTransformer,
+  })
+  totalAmount: number;
+
+  @Column({ name: 'order_queue', type: 'int4', nullable: false })
+  orderQueue: number;
+
+ 
+
+  @Column({
+    name: 'delivery_fees',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    default: 0,
+    transformer: decimalNumberTransformer,
+  })
+  deliveryFees: number;
+
+  @Column({
+    name: 'service_fee',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    default: 0,
+    transformer: decimalNumberTransformer,
+  })
+  serviceFee: number;
+
+  @Column({
+    name: 'items_subtotal',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: false,
+    transformer: decimalNumberTransformer,
+  })
+  itemsSubtotal: number;
+
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    nullable: false,
+    default: OrderStatus.PENDING,
+  })
+  status: OrderStatus;
+
+  @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
+  items: OrderItem[];
+}

@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { BranchType } from 'src/core/enums/branch-type';
 
@@ -30,4 +38,16 @@ export class BranchDTO extends BaseDTO {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiProperty({
+    example: 0.15,
+    description: 'Service fee rate (0.15 = 15%)',
+    default: 0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  servicePercentage?: number;
 }
