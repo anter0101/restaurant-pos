@@ -1,4 +1,5 @@
 import { OrderStatus } from 'src/core/enums/order-status';
+import { OrderType } from 'src/core/enums/order-type';
 import { baseColumns } from 'src/core/utils/base.migration';
 import {
   MigrationInterface,
@@ -74,8 +75,8 @@ export class CreateOrdersTable1730870400008 implements MigrationInterface {
             enum: [
               OrderStatus.PENDING,
               OrderStatus.PREPARED,
-              OrderStatus.ENDED,
-              OrderStatus.CANCELLED,
+              OrderStatus.SHIFT_CALCULATED,
+              OrderStatus.RETURNED,
             ],
             default: `'${OrderStatus.PENDING}'`,
             isNullable: false,
@@ -84,6 +85,13 @@ export class CreateOrdersTable1730870400008 implements MigrationInterface {
             name: 'order_queue',
             type: 'int4',
             isNullable: false,
+          },
+          {
+            name: 'order_type',
+            type: 'enum',
+            enum: [OrderType.DINE_IN, OrderType.TAKEAWAY, OrderType.DELIVERY],
+            isNullable: false,
+            default: `'${OrderType.TAKEAWAY}'`,
           },
           ...otherBaseColumns,
         ],

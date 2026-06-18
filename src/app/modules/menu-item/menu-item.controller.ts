@@ -160,11 +160,11 @@ export class MenuItemController {
   }
 
   @Get('/')
-  @Roles(UserRole.ADMIN, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.CASHIER, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Get the list of menu items paginated',
     description:
-      'With query `branchId`, each row includes `branchPrice` and `branchRelation` ({ menuItemId, branchId, price, isActive }) for that assignment.',
+      'With query `branchId`, each row includes `branchPrice` and `branchRelation` ({ menuItemId, branchId, price, isActive }) for that assignment. Non-admin users default to their assigned branch.',
   })
   @ApiResponse({
     status: 200,
@@ -175,27 +175,32 @@ export class MenuItemController {
   async getAllMenuItems(
     @Req() req: Request,
     @Query() query: MenuItemQueryDTO,
+    @AuthUser() user: User,
   ): Promise<Partial<MenuItemDTO>[]> {
+    const branchId =
+      query.branchId ??
+      (user.role !== UserRole.ADMIN ? user.branch?.id : undefined);
+
     if (query.menuCategoryId !== undefined) {
       await this.ensureMenuCategoryExists(query.menuCategoryId);
     }
-    if (query.branchId !== undefined) {
-      await this.ensureBranchExists(query.branchId);
+    if (branchId !== undefined) {
+      await this.ensureBranchExists(branchId);
     }
 
     const where: FindOptionsWhere<MenuItem> = {};
     if (query.menuCategoryId !== undefined) {
       where.category = { id: query.menuCategoryId };
     }
-    if (query.branchId !== undefined) {
-      where.branchRelations = { branchId: query.branchId };
+    if (branchId !== undefined) {
+      where.branchRelations = { branchId };
     }
 
     const findOptions = buildSearchQuery<MenuItem>({
       query,
       searchableColumns: ['nameAr', 'nameEn', 'description'],
       where: Object.keys(where).length > 0 ? where : undefined,
-      relations: query.branchId !== undefined ? ['branchRelations'] : [],
+      relations: branchId !== undefined ? ['branchRelations'] : [],
     });
 
     const [results, count] =
@@ -204,7 +209,7 @@ export class MenuItemController {
     const itemDtos = mapMenuItemToMenuItemDtoSelective(
       results,
       [...MENU_ITEM_LIST_SELECT_KEYS],
-      query.branchId,
+      branchId,
     );
 
     setPaginationHeaders(req, count, query);

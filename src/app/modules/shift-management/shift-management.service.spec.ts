@@ -7,6 +7,7 @@ import { Branch } from '../branch/branch.entity';
 import { User } from '../user/user.entity';
 import { Order } from '../order/order.entity';
 import { ShiftStatus } from 'src/core/enums/shift-status';
+import { UserRole } from 'src/core/enums/user-role';
 import { OrderStatus } from 'src/core/enums/order-status';
 import { resetOrderQueueCounter } from 'src/core/utils/order-queue.util';
 
@@ -58,10 +59,14 @@ describe('ShiftManagementService', () => {
     it('resets branch nextOrderQueue when opening a shift', async () => {
       const branch = { id: 1, nextOrderQueue: 42 };
       branchRepository.findOne.mockResolvedValue(branch);
-      userRepository.findOne.mockResolvedValue({ id: 3 });
+      userRepository.findOne.mockResolvedValue({
+        id: 3,
+        role: UserRole.CASHIER,
+        branch: { id: 1 },
+      });
       shiftRepository.findOne.mockResolvedValue(null);
 
-      await service.openShift({ branchId: 1, cashierId: 3 });
+      await service.openShift({ cashierId: 3 });
 
       expect(branch.nextOrderQueue).toBe(resetOrderQueueCounter());
       expect(branchRepository.save).toHaveBeenCalledWith(branch);
@@ -72,12 +77,40 @@ describe('ShiftManagementService', () => {
 
     it('rejects when cashier already has an open shift', async () => {
       branchRepository.findOne.mockResolvedValue({ id: 1 });
-      userRepository.findOne.mockResolvedValue({ id: 3 });
+      userRepository.findOne.mockResolvedValue({
+        id: 3,
+        role: UserRole.CASHIER,
+        branch: { id: 1 },
+      });
       shiftRepository.findOne.mockResolvedValue({ id: 9, status: ShiftStatus.OPEN });
 
       await expect(
-        service.openShift({ branchId: 1, cashierId: 3 }),
+        service.openShift({ cashierId: 3 }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when cashier has no branch', async () => {
+      userRepository.findOne.mockResolvedValue({
+        id: 3,
+        role: UserRole.CASHIER,
+        branch: undefined,
+      });
+
+      await expect(
+        service.openShift({ cashierId: 3 }),
+      ).rejects.toThrow(/not assigned to a branch/);
+    });
+
+    it('rejects when user is not a cashier', async () => {
+      userRepository.findOne.mockResolvedValue({
+        id: 3,
+        role: UserRole.ADMIN,
+        branch: { id: 1 },
+      });
+
+      await expect(
+        service.openShift({ cashierId: 3 }),
+      ).rejects.toThrow(/is not a cashier/);
     });
   });
 
@@ -101,6 +134,12 @@ describe('ShiftManagementService', () => {
         find: jest.fn().mockResolvedValue(preparedOrders),
         count: jest.fn().mockResolvedValue(2),
         save: jest.fn(),
+        createQueryBuilder: jest.fn(() => ({
+          select: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis(),
+          getRawOne: jest.fn().mockResolvedValue({ total: '350.50' }),
+        })),
       };
       const branchRepo = {
         update: jest.fn(),
@@ -121,10 +160,11 @@ describe('ShiftManagementService', () => {
 
       expect(result.status).toBe(ShiftStatus.CLOSED);
       expect(result.endMoney).toBe(500);
+      expect(result.actualEndMoney).toBe(350.5);
       expect(result.totalOrders).toBe(2);
       expect(orderRepo.save).toHaveBeenCalledWith([
-        expect.objectContaining({ status: OrderStatus.ENDED }),
-        expect.objectContaining({ status: OrderStatus.ENDED }),
+        expect.objectContaining({ status: OrderStatus.SHIFT_CALCULATED }),
+        expect.objectContaining({ status: OrderStatus.SHIFT_CALCULATED }),
       ]);
       expect(branchRepo.update).toHaveBeenCalledWith(
         { id: 2 },

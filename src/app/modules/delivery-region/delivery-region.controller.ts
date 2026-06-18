@@ -36,6 +36,7 @@ import { DeliveryRegion } from './delivery-region.entity';
 import { DeliveryRegionQueryDTO } from './dtos/delivery-region-query.dto';
 import { User } from '../user/user.entity';
 import { BranchService } from '../branch/branch.service';
+import { FindOptionsWhere } from 'typeorm';
 
 @Controller('delivery-regions')
 @ApiBearerAuth()
@@ -73,7 +74,7 @@ export class DeliveryRegionController {
   }
 
   @Get('/')
-  @Roles(UserRole.ADMIN, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.CASHIER, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get the list of delivery regions paginated' })
   @ApiResponse({
     status: 200,
@@ -84,10 +85,20 @@ export class DeliveryRegionController {
   async getAllDeliveryRegions(
     @Req() req: Request,
     @Query() query: DeliveryRegionQueryDTO,
+    @AuthUser() user: User,
   ): Promise<Partial<DeliveryRegionDTO>[]> {
+    const where: FindOptionsWhere<DeliveryRegion> = {};
+
+    if (query.branchId !== undefined) {
+      where.branch = { id: query.branchId };
+    } else if (user.role !== UserRole.ADMIN && user.branch?.id) {
+      where.branch = { id: user.branch.id };
+    }
+
     const findOptions = buildSearchQuery<DeliveryRegion>({
       query,
       searchableColumns: ['regionName'],
+      where: Object.keys(where).length > 0 ? where : undefined,
       relations: ['branch'],
     });
 

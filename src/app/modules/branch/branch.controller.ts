@@ -32,6 +32,7 @@ import { UpdateBranchDTO } from './dtos/update-branch.dto';
 import { Branch } from './branch.entity';
 import { BranchQueryDTO } from './dtos/branch-query.dto';
 import { User } from '../user/user.entity';
+import { FindOptionsWhere } from 'typeorm';
 
 @Controller('branches')
 @ApiBearerAuth()
@@ -55,7 +56,7 @@ export class BranchController {
   
 
   @Get('/')
-  @Roles(UserRole.ADMIN, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.CASHIER, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get the list of branches paginated' })
   @ApiResponse({
     status: 200,
@@ -66,10 +67,18 @@ export class BranchController {
   async getAllBranches(
     @Req() req: Request,
     @Query() query: BranchQueryDTO,
+    @AuthUser() user: User,
   ): Promise<Partial<BranchDTO>[]> {
+    const where: FindOptionsWhere<Branch> = {};
+
+    if (user.role !== UserRole.ADMIN && user.branch?.id) {
+      where.id = user.branch.id;
+    }
+
     const findOptions = buildSearchQuery<Branch>({
       query,
       searchableColumns: ['name', 'address', 'phone'],
+      where: Object.keys(where).length > 0 ? where : undefined,
     });
 
     const [results, count] =
@@ -80,7 +89,7 @@ export class BranchController {
   }
 
   @Get('/:id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.CASHIER, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get a branch by id' })
   @ApiResponse({
     status: 200,
@@ -88,7 +97,18 @@ export class BranchController {
     type: BranchDTO,
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async getBranchById(@Param('id', ParseIntPipe) id: number): Promise<Branch> {
+  async getBranchById(
+    @Param('id', ParseIntPipe) id: number,
+    @AuthUser() user: User,
+  ): Promise<Branch> {
+    if (
+      user.role !== UserRole.ADMIN &&
+      user.branch?.id !== undefined &&
+      user.branch.id !== id
+    ) {
+      throw new NotFoundException(`Branch with id ${id} not found`);
+    }
+
     const existing = await this.branchService.findById(id);
     if (!existing) {
       throw new NotFoundException(`Branch with id ${id} not found`);

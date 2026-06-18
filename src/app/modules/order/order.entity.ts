@@ -8,6 +8,7 @@ import {
 import { BaseEntity } from 'src/core/utils/base.entity';
 import { decimalNumberTransformer } from 'src/core/utils/decimal-number.transformer';
 import { OrderStatus } from 'src/core/enums/order-status';
+import { OrderType } from 'src/core/enums/order-type';
 import { Branch } from '../branch/branch.entity';
 import { User } from '../user/user.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
@@ -86,6 +87,14 @@ export class Order extends BaseEntity {
     transformer: decimalNumberTransformer,
   })
   itemsSubtotal: number;
+
+  @Column({
+    name: 'order_type',
+    type: 'enum',
+    enum: OrderType,
+    nullable: false,
+  })
+  orderType: OrderType;
 
   @Column({
     type: 'enum',

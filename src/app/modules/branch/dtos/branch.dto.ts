@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsNumber,
+  IsBoolean,
   Min,
   Max,
 } from 'class-validator';
@@ -38,6 +39,17 @@ export class BranchDTO extends BaseDTO {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, new orders skip the kitchen queue and start as prepared (done)',
+    default: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSteppedKitchen?: boolean;
 
   @ApiProperty({
     example: 0.15,

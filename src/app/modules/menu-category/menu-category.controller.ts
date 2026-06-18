@@ -75,7 +75,7 @@ export class MenuCategoryController {
   }
 
   @Get('/')
-  @Roles(UserRole.ADMIN, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.CASHIER, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get the list of menu categories paginated' })
   @ApiResponse({
     status: 200,

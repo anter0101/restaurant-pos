@@ -23,6 +23,7 @@ export class AuthService {
 
     const userFind = await this.userService.findByFields({
       where: { username: Equal(loginUsername) },
+      relations: ['branch'],
     });
     const validPassword =
       !!userFind && (await bcrypt.compare(loginPassword, userFind.password));
@@ -49,11 +50,12 @@ export class AuthService {
     });
   }
 
-  generateToken(user: Pick<User, 'id' | 'username' | 'role'>): GeneratedToken {
+  generateToken(user: Pick<User, 'id' | 'username' | 'role' | 'branch'>): GeneratedToken {
     const payload: JwtPayload = {
       id: user.id,
       username: user.username,
       role: user.role,
+      branchId: user.branch?.id,
     };
     return {
       access_token: this.jwtService.sign(payload),

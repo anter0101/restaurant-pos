@@ -22,6 +22,14 @@ export class Branch extends BaseEntity {
   phone: string;
 
   @Column({
+    name: 'is_stepped_kitchen',
+    type: 'boolean',
+    nullable: false,
+    default: false,
+  })
+  isSteppedKitchen: boolean;
+
+  @Column({
     name: 'service_percentage',
     type: 'decimal',
     precision: 5,

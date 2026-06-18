@@ -5,36 +5,46 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  EntityManager,
   FindManyOptions,
   FindOneOptions,
   In,
   Repository,
 } from 'typeorm';
 import { Order } from './order.entity';
-import { OrderItem } from './order-item.entity';
 import { CreateOrderDTO } from './dtos/create-order.dto';
 import { Branch } from '../branch/branch.entity';
 import { User } from '../user/user.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
-import { ShiftManagement } from '../shift-management/shift-management.entity';
 import { MenuItem } from '../menu-item/menu-item.entity';
 import { RelMenuBranch } from '../menu-item/rel-menu-branch.entity';
-import { OrderStatus } from 'src/core/enums/order-status';
-import { ShiftStatus } from 'src/core/enums/shift-status';
+import { OrderType } from 'src/core/enums/order-type';
+import {
+  assertDeliveryRegionMatchesOrderType,
+  assertOrderTypeAllowedForBranch,
+} from 'src/core/utils/order-type.util';
 import {
   assignNextOrderQueue,
   normalizeOrderQueueCounter,
 } from 'src/core/utils/order-queue.util';
-
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
+import {
+  assertOrderTotalsMatch,
+  calculateServiceFee,
+  calculateTotalAmount,
+} from 'src/core/utils/order-totals.util';
+import { ShiftManagementService } from '../shift-management/shift-management.service';
+import {
+  calculateItemsSubtotal,
+  mapCreateOrderItemsToEntities,
+  mapCreateOrderToEntity,
+} from './order.mapper';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    private readonly shiftManagementService: ShiftManagementService,
   ) {}
 
   async findById(id: number): Promise<Order | undefined> {
@@ -67,143 +77,188 @@ export class OrderService {
 
   /**
    * Creates an order with immutable price snapshots.
-   * Snapshots unitPrice, menu names, deliveryFees, and serviceFee at creation time.
+   * POS sends calculated totals; server recalculates and rejects mismatches.
    */
-  async createOrder(dto: CreateOrderDTO, creator?: string): Promise<Order> {
+  async createOrder(dto: CreateOrderDTO, user: User): Promise<Order> {
     if (!dto.items?.length) {
       throw new BadRequestException('At least one order item is required');
     }
 
+    const branchId = user.branch?.id;
+    if (!branchId) {
+      throw new BadRequestException('User is not assigned to a branch');
+    }
+
+    const openShift =
+      await this.shiftManagementService.findOpenShiftForCashier(
+        user.id,
+        branchId,
+      );
+    if (!openShift) {
+      throw new BadRequestException(
+        'No open shift found. Open a shift before creating orders.',
+      );
+    }
+
+    assertDeliveryRegionMatchesOrderType(dto.orderType, dto.deliveryRegionId);
+
     return this.orderRepository.manager.transaction(async (manager) => {
       const branch = await manager.getRepository(Branch).findOne({
-        where: { id: dto.branchId },
+        where: { id: branchId },
         lock: { mode: 'pessimistic_write' },
       });
       if (!branch) {
-        throw new NotFoundException(`Branch ${dto.branchId} not found`);
+        throw new NotFoundException(`Branch ${branchId} not found`);
       }
 
-      const { assigned: orderQueue, next: nextOrderQueue } = assignNextOrderQueue(
-        normalizeOrderQueueCounter(branch.nextOrderQueue ?? 0),
-      );
+      assertOrderTypeAllowedForBranch(branch.type, dto.orderType);
+
+      const { assigned: orderQueue, next: nextOrderQueue } =
+        assignNextOrderQueue(
+          normalizeOrderQueueCounter(branch.nextOrderQueue ?? 0),
+        );
       branch.nextOrderQueue = nextOrderQueue;
       await manager.getRepository(Branch).save(branch);
 
-      let customer: User | undefined;
-      if (dto.customerId) {
-        customer =
-          (await manager.getRepository(User).findOne({
-            where: { id: dto.customerId },
-          })) ?? undefined;
-        if (!customer) {
-          throw new NotFoundException(`Customer ${dto.customerId} not found`);
-        }
-      }
-
-      let deliveryRegion: DeliveryRegion | undefined;
-      let deliveryFees = 0;
-      if (dto.deliveryRegionId) {
-        deliveryRegion =
-          (await manager.getRepository(DeliveryRegion).findOne({
-            where: { id: dto.deliveryRegionId, branch: { id: dto.branchId } },
-          })) ?? undefined;
-        if (!deliveryRegion) {
-          throw new NotFoundException(
-            `Delivery region ${dto.deliveryRegionId} not found for branch ${dto.branchId}`,
-          );
-        }
-        deliveryFees = deliveryRegion.deliveryPrice;
-      }
-
-      let shift: ShiftManagement | undefined;
-      if (dto.shiftManagementId) {
-        shift =
-          (await manager.getRepository(ShiftManagement).findOne({
-            where: { id: dto.shiftManagementId, branch: { id: dto.branchId } },
-          })) ?? undefined;
-        if (!shift) {
-          throw new NotFoundException(
-            `Shift ${dto.shiftManagementId} not found for branch ${dto.branchId}`,
-          );
-        }
-        if (shift.status !== ShiftStatus.OPEN) {
-          throw new BadRequestException(
-            `Shift ${dto.shiftManagementId} is not open`,
-          );
-        }
-      }
-
-      const menuItemIds = dto.items.map((i) => i.menuItemId);
-      const menuItems = await manager.getRepository(MenuItem).find({
-        where: { id: In(menuItemIds), isActive: true },
-      });
-      if (menuItems.length !== menuItemIds.length) {
-        const found = new Set(menuItems.map((m) => m.id));
-        const missing = menuItemIds.filter((id) => !found.has(id));
-        throw new NotFoundException(
-          `Menu items not found or inactive: ${missing.join(', ')}`,
-        );
-      }
-
-      const branchPrices = await manager.getRepository(RelMenuBranch).find({
-        where: menuItemIds.map((menuItemId) => ({
-          menuItemId,
-          branchId: dto.branchId,
-          isActive: true,
-        })),
-      });
-      const priceByMenuItemId = new Map(
-        branchPrices.map((rel) => [rel.menuItemId, rel.price]),
-      );
-      const menuItemById = new Map(menuItems.map((m) => [m.id, m]));
-
-      const orderItems: OrderItem[] = [];
-      let itemsSubtotal = 0;
-
-      for (const line of dto.items) {
-        const menuItem = menuItemById.get(line.menuItemId)!;
-        const unitPrice =
-          priceByMenuItemId.get(line.menuItemId) ?? menuItem.defaultPrice;
-        itemsSubtotal = roundMoney(
-          itemsSubtotal + unitPrice * line.quantity,
-        );
-
-        const orderItem = manager.getRepository(OrderItem).create({
-          menuItem,
-          quantity: line.quantity,
-          unitPrice,
-          menuItemNameAr: menuItem.nameAr,
-          menuItemNameEn: menuItem.nameEn,
-          createdBy: creator,
-          updatedBy: creator,
-        });
-        orderItems.push(orderItem);
-      }
-
-      const serviceFee = roundMoney(
-        itemsSubtotal * (branch.servicePercentage ?? 0),
-      );
-      const totalAmount = roundMoney(
-        itemsSubtotal + deliveryFees + serviceFee,
+      const customer = await this.resolveCustomer(manager, dto.customerId);
+      const { deliveryRegion, deliveryFees } =
+        await this.resolveDeliveryRegion(manager, dto, branchId);
+      const { menuItemById, priceByMenuItemId } = await this.loadMenuPricing(
+        manager,
+        dto,
+        branchId,
       );
 
-      const order = manager.getRepository(Order).create({
+      const orderItems = mapCreateOrderItemsToEntities(
+        dto.items,
+        menuItemById,
+        priceByMenuItemId,
+        user.username,
+      );
+
+      const serverItemsSubtotal = calculateItemsSubtotal(dto.items);
+      const serverServiceFee = calculateServiceFee(
+        dto.orderType,
+        serverItemsSubtotal,
+        branch.servicePercentage ?? 0,
+      );
+      const serverTotalAmount = calculateTotalAmount(
+        serverItemsSubtotal,
+        deliveryFees,
+        serverServiceFee,
+      );
+
+      assertOrderTotalsMatch(
+        {
+          itemsSubtotal: dto.itemsSubtotal,
+          deliveryFees: dto.deliveryFees,
+          serviceFee: dto.serviceFee,
+          totalAmount: dto.totalAmount,
+        },
+        {
+          itemsSubtotal: serverItemsSubtotal,
+          deliveryFees,
+          serviceFee: serverServiceFee,
+          totalAmount: serverTotalAmount,
+        },
+      );
+
+      const order = mapCreateOrderToEntity({
+        dto,
         branch,
+        shift: openShift,
         customer,
         deliveryRegion,
-        shift,
         orderQueue,
-        itemsSubtotal,
+        itemsSubtotal: serverItemsSubtotal,
         deliveryFees,
-        serviceFee,
-        totalAmount,
-        status: OrderStatus.PENDING,
-        items: orderItems,
-        createdBy: creator,
-        updatedBy: creator,
+        serviceFee: serverServiceFee,
+        totalAmount: serverTotalAmount,
+        orderItems,
+        creator: user.username,
       });
 
       return manager.getRepository(Order).save(order);
     });
+  }
+
+  private async resolveCustomer(
+    manager: EntityManager,
+    customerId?: number,
+  ): Promise<User | undefined> {
+    if (!customerId) {
+      return undefined;
+    }
+
+    const customer =
+      (await manager.getRepository(User).findOne({
+        where: { id: customerId },
+      })) ?? undefined;
+    if (!customer) {
+      throw new NotFoundException(`Customer ${customerId} not found`);
+    }
+
+    return customer;
+  }
+
+  private async resolveDeliveryRegion(
+    manager: EntityManager,
+    dto: CreateOrderDTO,
+    branchId: number,
+  ): Promise<{ deliveryRegion?: DeliveryRegion; deliveryFees: number }> {
+    if (dto.orderType !== OrderType.DELIVERY) {
+      return { deliveryFees: 0 };
+    }
+
+    const deliveryRegion =
+      (await manager.getRepository(DeliveryRegion).findOne({
+        where: { id: dto.deliveryRegionId, branch: { id: branchId } },
+      })) ?? undefined;
+    if (!deliveryRegion) {
+      throw new NotFoundException(
+        `Delivery region ${dto.deliveryRegionId} not found for branch ${branchId}`,
+      );
+    }
+
+    return {
+      deliveryRegion,
+      deliveryFees: deliveryRegion.deliveryPrice,
+    };
+  }
+
+  private async loadMenuPricing(
+    manager: EntityManager,
+    dto: CreateOrderDTO,
+    branchId: number,
+  ): Promise<{
+    menuItemById: Map<number, MenuItem>;
+    priceByMenuItemId: Map<number, number>;
+  }> {
+    const menuItemIds = dto.items.map((item) => item.menuItemId);
+    const menuItems = await manager.getRepository(MenuItem).find({
+      where: { id: In(menuItemIds), isActive: true },
+    });
+    if (menuItems.length !== menuItemIds.length) {
+      const found = new Set(menuItems.map((item) => item.id));
+      const missing = menuItemIds.filter((id) => !found.has(id));
+      throw new NotFoundException(
+        `Menu items not found or inactive: ${missing.join(', ')}`,
+      );
+    }
+
+    const branchPrices = await manager.getRepository(RelMenuBranch).find({
+      where: menuItemIds.map((menuItemId) => ({
+        menuItemId,
+        branchId,
+        isActive: true,
+      })),
+    });
+
+    return {
+      menuItemById: new Map(menuItems.map((item) => [item.id, item])),
+      priceByMenuItemId: new Map(
+        branchPrices.map((rel) => [rel.menuItemId, rel.price]),
+      ),
+    };
   }
 }

@@ -42,6 +42,16 @@ export class ShiftManagement extends BaseEntity {
   endMoney?: number;
 
   @Column({
+    name: 'actual_end_money',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: decimalNumberTransformer,
+  })
+  actualEndMoney?: number;
+
+  @Column({
     type: 'enum',
     enum: ShiftStatus,
     nullable: false,

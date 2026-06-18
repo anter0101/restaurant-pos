@@ -11,6 +11,7 @@ const allowedBranchDtoKeys: ReadonlyArray<keyof BranchDTO | keyof BaseDTO> = [
   'type',
   'address',
   'phone',
+  'isSteppedKitchen',
   'servicePercentage',
   'createdAt',
   'updatedAt',
@@ -60,6 +61,7 @@ export const mapCreateBranchDtoToEntity = (dto: CreateBranchDTO): Branch => {
   branch.type = dto.type;
   branch.address = dto.address;
   if (dto.phone !== undefined) branch.phone = dto.phone;
+  branch.isSteppedKitchen = dto.isSteppedKitchen ?? false;
   branch.servicePercentage = dto.servicePercentage ?? 0;
 
   return branch;
@@ -73,6 +75,9 @@ export const mapUpdateBranchDtoToEntity = (dto: UpdateBranchDTO): Branch => {
   if (dto.type !== undefined) branch.type = dto.type;
   if (dto.address !== undefined) branch.address = dto.address;
   if (dto.phone !== undefined) branch.phone = dto.phone;
+  if (dto.isSteppedKitchen !== undefined) {
+    branch.isSteppedKitchen = dto.isSteppedKitchen;
+  }
   if (dto.servicePercentage !== undefined) {
     branch.servicePercentage = dto.servicePercentage;
   }
