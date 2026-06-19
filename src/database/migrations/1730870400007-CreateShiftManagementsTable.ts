@@ -48,13 +48,6 @@ export class CreateShiftManagementsTable1730870400007
             isNullable: true,
           },
           {
-            name: 'actual_end_money',
-            type: 'decimal',
-            precision: 12,
-            scale: 2,
-            isNullable: true,
-          },
-          {
             name: 'status',
             type: 'enum',
             enum: [ShiftStatus.OPEN, ShiftStatus.CLOSED],
