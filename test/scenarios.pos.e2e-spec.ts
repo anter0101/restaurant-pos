@@ -40,31 +40,62 @@ describe('POS E2E Scenarios', () => {
   let orderCounter = 0;
   let regionCounter = 0;
   let currentShiftId: number | null = null;
+  let lastClosedShiftId: number | null = null;
+  let lastCalculatedTotal = 0;
 
   const shiftService = {
-    openShift: jest.fn(async (dto: { cashierId: number }) => {
+    openShift: jest.fn(async (user: { id: number; branch?: { id: number } }) => {
       branchState.nextOrderQueue = 0;
       currentShiftId = ++shiftCounter;
+      lastClosedShiftId = null;
       return {
         id: currentShiftId,
-        branch: { id: 1 },
+        branch: { id: user.branch?.id ?? 1 },
         status: ShiftStatus.OPEN,
+        isCalculatedShift: false,
       };
     }),
-    endShift: jest.fn(async (shiftId: number, dto: { endMoney: number }) => {
+    endShift: jest.fn(async () => {
+      if (!currentShiftId) {
+        throw new Error('No open shift');
+      }
+      lastClosedShiftId = currentShiftId;
       branchState.nextOrderQueue = 0;
       currentShiftId = null;
       return {
-        id: shiftId,
+        id: lastClosedShiftId,
         status: ShiftStatus.CLOSED,
-        endMoney: dto.endMoney,
-        totalOrders: 1,
+        isCalculatedShift: false,
       };
     }),
-    findById: jest.fn(async (id: number) => ({
-      id,
-      status: currentShiftId === id ? ShiftStatus.OPEN : ShiftStatus.CLOSED,
-    })),
+    hasOpenShift: jest.fn(async () => currentShiftId !== null),
+    calculateOrdersTotals: jest.fn(async (id: number) => {
+      if (id !== lastClosedShiftId) {
+        throw new Error('Shift not found or not closed');
+      }
+      lastCalculatedTotal = 40;
+      return lastCalculatedTotal;
+    }),
+    findById: jest.fn(async (id: number) => {
+      if (id === currentShiftId) {
+        return {
+          id,
+          status: ShiftStatus.OPEN,
+          isCalculatedShift: false,
+        };
+      }
+      if (id === lastClosedShiftId) {
+        return {
+          id,
+          status: lastCalculatedTotal > 0 ? ShiftStatus.CALCULATED : ShiftStatus.CLOSED,
+          isCalculatedShift: lastCalculatedTotal > 0,
+          actualEndMoney: lastCalculatedTotal > 0 ? lastCalculatedTotal : undefined,
+          totalOrders: lastCalculatedTotal > 0 ? 2 : undefined,
+        };
+      }
+      return undefined;
+    }),
+    findAndCount: jest.fn(async () => [[], 0]),
   };
 
   const deliveryRegionService = {
@@ -176,14 +207,15 @@ describe('POS E2E Scenarios', () => {
     orderCounter = 0;
     regionCounter = 0;
     currentShiftId = null;
+    lastClosedShiftId = null;
+    lastCalculatedTotal = 0;
     jest.clearAllMocks();
   });
 
   describe('Scenario: Dine-in order (no delivery fees)', () => {
     it('opens shift, creates order without deliveryRegionId, fees are zero', async () => {
-      const shiftRes = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/api/v1/shift-managements/open')
-        .send({ cashierId: 2 })
         .expect(201);
 
       const orderRes = await request(app.getHttpServer())
@@ -233,9 +265,8 @@ describe('POS E2E Scenarios', () => {
 
   describe('Scenario: Shift end resets queue counter', () => {
     it('assigns queue 0 then 1, end shift resets, next order is 0 again', async () => {
-      const shift = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/api/v1/shift-managements/open')
-        .send({ cashierId: 2 })
         .expect(201);
 
       const first = await request(app.getHttpServer())
@@ -265,16 +296,18 @@ describe('POS E2E Scenarios', () => {
       expect(first.body.orderQueue).toBe(0);
       expect(second.body.orderQueue).toBe(1);
 
-      await request(app.getHttpServer())
-        .put(`/api/v1/shift-managements/${shift.body.id}/end`)
-        .send({ endMoney: 500 })
-        .expect(200);
+      const endRes = await request(app.getHttpServer())
+        .post('/api/v1/shift-managements/end')
+        .expect((res) => {
+          expect([200, 201]).toContain(res.status);
+        });
 
+      expect(endRes.body.status).toBe(ShiftStatus.CLOSED);
+      expect(endRes.body.isCalculatedShift).toBe(false);
       expect(branchState.nextOrderQueue).toBe(0);
 
-      const afterReset = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/api/v1/shift-managements/open')
-        .send({ cashierId: 2 })
         .expect(201);
 
       const third = await request(app.getHttpServer())
@@ -290,6 +323,65 @@ describe('POS E2E Scenarios', () => {
         .expect(201);
 
       expect(third.body.orderQueue).toBe(0);
+    });
+  });
+
+  describe('Scenario: Admin calculates closed shift totals', () => {
+    it('closes shift then admin calculates prepared order totals', async () => {
+      const openRes = await request(app.getHttpServer())
+        .post('/api/v1/shift-managements/open')
+        .expect(201);
+
+      const hasOpenRes = await request(app.getHttpServer())
+        .get('/api/v1/shift-managements/has-open-shift')
+        .expect(200);
+
+      expect(hasOpenRes.body === true || hasOpenRes.text === 'true').toBe(true);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/orders')
+        .send({
+          orderType: OrderType.TAKEAWAY,
+          items: [{ menuItemId: 1, quantity: 2, unitPrice: 20 }],
+          itemsSubtotal: 40,
+          deliveryFees: 0,
+          serviceFee: 0,
+          totalAmount: 40,
+        })
+        .expect(201);
+
+      const closedShift = await request(app.getHttpServer())
+        .post('/api/v1/shift-managements/end')
+        .expect((res) => {
+          expect([200, 201]).toContain(res.status);
+        });
+
+      const hasClosedRes = await request(app.getHttpServer())
+        .get('/api/v1/shift-managements/has-open-shift')
+        .expect(200);
+
+      expect(hasClosedRes.body === false || hasClosedRes.text === 'false').toBe(true);
+
+      const calculatedTotal = await request(app.getHttpServer())
+        .post(`/api/v1/shift-managements/${closedShift.body.id}/calculate-orders-totals`)
+        .expect((res) => {
+          expect([200, 201]).toContain(res.status);
+        });
+
+      expect(Number(calculatedTotal.text)).toBe(40);
+      expect(shiftService.calculateOrdersTotals).toHaveBeenCalledWith(
+        closedShift.body.id,
+        'cashier',
+      );
+
+      const shiftDetail = await request(app.getHttpServer())
+        .get(`/api/v1/shift-managements/${closedShift.body.id}`)
+        .expect(200);
+
+      expect(shiftDetail.body.status).toBe(ShiftStatus.CALCULATED);
+      expect(shiftDetail.body.isCalculatedShift).toBe(true);
+      expect(shiftDetail.body.actualEndMoney).toBe(40);
+      expect(openRes.body.isCalculatedShift).toBe(false);
     });
   });
 

@@ -140,13 +140,34 @@ function examplesForPost(url, req) {
       example('201 Created — shift opened', 'Created', 201, {
         id: 1,
         status: 'OPEN',
+        isCalculatedShift: false,
         startShift: '2026-06-16T08:00:00.000Z',
-        notes: 'Morning shift',
         branch: { id: 1, name: 'Main Branch' },
         cashier: { id: 2, name: 'Cashier One', username: 'cashier1' },
         createdAt: '2026-06-16T08:00:00.000Z',
         updatedAt: '2026-06-16T08:00:00.000Z',
       }, originalRequest),
+    ];
+  }
+
+  if (u.includes('/shift-managements/end')) {
+    return [
+      example('201 Created — shift closed', 'Created', 201, {
+        id: 1,
+        status: 'CLOSED',
+        isCalculatedShift: false,
+        endShift: '2026-06-16T20:00:00.000Z',
+        branch: { id: 1, name: 'Main Branch' },
+        cashier: { id: 2, name: 'Cashier One', username: 'cashier1' },
+        createdAt: '2026-06-16T08:00:00.000Z',
+        updatedAt: '2026-06-16T20:00:00.000Z',
+      }, originalRequest),
+    ];
+  }
+
+  if (u.includes('calculate-orders-totals')) {
+    return [
+      example('201 Created — calculated end money', 'Created', 201, 40, originalRequest),
     ];
   }
 
@@ -211,7 +232,7 @@ function walkItems(items) {
       item.response = examplesForPost(url, item.request);
       if (!item.request.description) {
         item.request.description =
-          'Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token.';
+          'Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT.';
       }
     }
   }

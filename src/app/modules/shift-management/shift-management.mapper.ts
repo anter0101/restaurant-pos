@@ -16,7 +16,6 @@ const allowedShiftDtoKeys: ReadonlyArray<
   'endMoney',
   'actualEndMoney',
   'totalOrders',
-  'notes',
   'createdAt',
   'updatedAt',
   'createdBy',

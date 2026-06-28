@@ -229,8 +229,17 @@ export class ShiftManagementController {
 
 
 
-  @Get(':id')
+  @Get('has-open-shift')
+  @Roles(UserRole.CASHIER)
+  @ApiOperation({ summary: 'Check if a cashier has an open shift' })
+  @ApiResponse({ status: 200, type: Boolean })
+  async hasOpenShift(
+    @AuthUser() user: User,
+  ): Promise<boolean> {
+    return this.shiftManagementService.hasOpenShift(user);
+  }
 
+  @Get(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get a shift by id' })
 
@@ -252,16 +261,6 @@ export class ShiftManagementController {
 
     return mapShiftManagementToShiftManagementDtoSelective(shift);
 
-  }
-
-  @Get('has-open-shift')
-  @Roles(UserRole.CASHIER)
-  @ApiOperation({ summary: 'Check if a cashier has an open shift' })
-  @ApiResponse({ status: 200, type: Boolean })
-  async hasOpenShift(
-    @AuthUser() user: User,
-  ): Promise<boolean> {
-    return this.shiftManagementService.hasOpenShift(user);
   }
 
   // admin calulate end money for a shift
