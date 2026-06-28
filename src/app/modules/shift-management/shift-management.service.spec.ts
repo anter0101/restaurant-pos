@@ -186,4 +186,106 @@ describe('ShiftManagementService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
+
+  describe('calculateOrdersTotals', () => {
+    it('calculates totals, marks shift calculated, and batch-updates prepared orders', async () => {
+      const shift = {
+        id: 7,
+        status: ShiftStatus.CLOSED,
+      };
+
+      const shiftRepo = {
+        findOne: jest.fn().mockResolvedValue(shift),
+        save: jest.fn(async (s) => s),
+      };
+      const orderRepo = {
+        createQueryBuilder: jest.fn((alias?: string) => {
+          if (alias === 'order') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              addSelect: jest.fn().mockReturnThis(),
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              getRawOne: jest.fn().mockResolvedValue({ total: '350.50', count: '2' }),
+            };
+          }
+          return {
+            update: jest.fn().mockReturnThis(),
+            set: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            execute: jest.fn().mockResolvedValue({ affected: 2 }),
+          };
+        }),
+      };
+
+      shiftRepository.manager.transaction.mockImplementation(async (cb) =>
+        cb({
+          getRepository: jest.fn((entity) => {
+            if (entity === ShiftManagement) return shiftRepo;
+            if (entity === Order) return orderRepo;
+            return {};
+          }),
+        }),
+      );
+
+      const result = await service.calculateOrdersTotals(7, 'admin');
+
+      expect(result).toBe(350.5);
+      expect(shift.status).toBe(ShiftStatus.CALCULATED);
+      expect(shift.actualEndMoney).toBe(350.5);
+      expect(shift.totalOrders).toBe(2);
+      expect(shift.updatedBy).toBe('admin');
+      expect(orderRepo.createQueryBuilder).toHaveBeenCalledWith('order');
+      expect(orderRepo.createQueryBuilder).toHaveBeenCalledWith();
+    });
+
+    it('throws when shift is not found', async () => {
+      shiftRepository.manager.transaction.mockImplementation(async (cb) =>
+        cb({
+          getRepository: jest.fn(() => ({
+            findOne: jest.fn().mockResolvedValue(null),
+          })),
+        }),
+      );
+
+      await expect(
+        service.calculateOrdersTotals(999),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('throws when shift is already calculated', async () => {
+      shiftRepository.manager.transaction.mockImplementation(async (cb) =>
+        cb({
+          getRepository: jest.fn(() => ({
+            findOne: jest.fn().mockResolvedValue({
+              id: 7,
+              status: ShiftStatus.CALCULATED,
+            }),
+          })),
+        }),
+      );
+
+      await expect(
+        service.calculateOrdersTotals(7),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('throws when shift is still open', async () => {
+      shiftRepository.manager.transaction.mockImplementation(async (cb) =>
+        cb({
+          getRepository: jest.fn(() => ({
+            findOne: jest.fn().mockResolvedValue({
+              id: 7,
+              status: ShiftStatus.OPEN,
+            }),
+          })),
+        }),
+      );
+
+      await expect(
+        service.calculateOrdersTotals(7),
+      ).rejects.toThrow(/must be closed/);
+    });
+  });
 });

@@ -180,7 +180,7 @@ export class ShiftManagementController {
 
   @Post('open')
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.CASHIER)
 
   @ApiOperation({
 
@@ -196,19 +196,17 @@ export class ShiftManagementController {
 
   async openShift(
 
-    @Body() dto: OpenShiftDTO,
-
     @AuthUser() user: User,
 
   ): Promise<ShiftManagement> {
 
-    return this.shiftManagementService.openShift(dto, user?.username);
+    return this.shiftManagementService.openShift(user);
 
   }
 
 
 
-  @Put(':id/end')
+  @Post('end')
 
   @ApiOperation({
 
@@ -217,19 +215,15 @@ export class ShiftManagementController {
   })
 
   @ApiResponse({ status: 200, type: ShiftManagement })
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.CASHIER)
 
   async endShift(
-
-    @Param('id', ParseIntPipe) id: number,
-
-    @Body() dto: EndShiftDTO,
 
     @AuthUser() user: User,
 
   ): Promise<ShiftManagement> {
 
-    return this.shiftManagementService.endShift(id, dto, user?.username);
+    return this.shiftManagementService.endShift(user);
 
   }
 
@@ -259,6 +253,29 @@ export class ShiftManagementController {
     return mapShiftManagementToShiftManagementDtoSelective(shift);
 
   }
+
+  @Get('has-open-shift')
+  @Roles(UserRole.CASHIER)
+  @ApiOperation({ summary: 'Check if a cashier has an open shift' })
+  @ApiResponse({ status: 200, type: Boolean })
+  async hasOpenShift(
+    @AuthUser() user: User,
+  ): Promise<boolean> {
+    return this.shiftManagementService.hasOpenShift(user);
+  }
+
+  // admin calulate end money for a shift
+  @Post(':id/calculate-orders-totals')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Calculate the end money for a shift' })
+  @ApiResponse({ status: 200, type: Number })
+  async calculateOrdersTotals(
+    @Param('id', ParseIntPipe) id: number,
+    @AuthUser() user: User,
+  ): Promise<number> {
+    return this.shiftManagementService.calculateOrdersTotals(id, user.username);
+  }
+
 
 }
 

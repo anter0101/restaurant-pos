@@ -15,6 +15,7 @@ import { User } from '../user/user.entity';
 import { Order } from '../order/order.entity';
 import { resetOrderQueueCounter } from 'src/core/utils/order-queue.util';
 import { roundMoney } from 'src/core/utils/order-totals.util';
+import { UserDTO } from '../user/dtos/user.dto';
 @Injectable()
 export class ShiftManagementService {
   constructor(
@@ -55,24 +56,24 @@ export class ShiftManagementService {
     return result ?? undefined;
   }
 
-  async openShift(dto: OpenShiftDTO, creator?: string): Promise<ShiftManagement> {
+  async openShift(dto: UserDTO, creator?: string): Promise<ShiftManagement> {
     const cashier = await this.userRepository.findOne({
-      where: { id: dto.cashierId },
+      where: { id:  dto.id},
       relations: ['branch'],
     });
     if (!cashier) {
-      throw new NotFoundException(`Cashier ${dto.cashierId} not found`);
+      throw new NotFoundException(`Cashier ${dto.id} not found`);
     }
     if (cashier.role !== UserRole.CASHIER) {
       throw new BadRequestException(
-        `User ${dto.cashierId} is not a cashier`,
+        `User ${dto.id} is not a cashier`,
       );
     }
 
-    const branchId = cashier.branch?.id;
+    const branchId = dto.branch?.id;
     if (!branchId) {
       throw new BadRequestException(
-        `Cashier ${dto.cashierId} is not assigned to a branch`,
+        `Cashier ${dto.id} is not assigned to a branch`,
       );
     }
 
@@ -86,13 +87,13 @@ export class ShiftManagementService {
     const openShift = await this.shiftRepository.findOne({
       where: {
         branch: { id: branchId },
-        cashier: { id: dto.cashierId },
+        cashier: { id: dto.id },
         status: ShiftStatus.OPEN,
       },
     });
     if (openShift) {
       throw new BadRequestException(
-        `Cashier ${dto.cashierId} already has an open shift at branch ${branchId}`,
+        `Cashier ${dto.id} already has an open shift at branch ${branchId}`,
       );
     }
 
@@ -101,7 +102,6 @@ export class ShiftManagementService {
       cashier,
       startShift: new Date(),
       status: ShiftStatus.OPEN,
-      notes: dto.notes,
       createdBy: creator,
       updatedBy: creator,
     });
@@ -112,74 +112,91 @@ export class ShiftManagementService {
     return this.shiftRepository.save(shift);
   }
 
-  /**
-   * Closes a shift, records end-of-day cash, sums prepared order totals into actualEndMoney,
-   * and moves linked prepared orders to shift_calculated.
-   */
   async endShift(
-    shiftId: number,
-    dto: EndShiftDTO,
-    updater?: string,
+    dto: UserDTO,
   ): Promise<ShiftManagement> {
+
+    const shift = await this.shiftRepository.findOne({
+      where: {
+        branch: { id: dto.branch?.id },
+        cashier: { id: dto.id },
+        status: ShiftStatus.OPEN,
+      },
+    });
+    if (!shift) {
+      throw new NotFoundException(`Shift not found`);
+    }
+
+    shift.status = ShiftStatus.CLOSED;
+    shift.endShift = new Date();
+    return this.shiftRepository.save(shift);
+  }
+
+  async hasOpenShift(dto: UserDTO): Promise<boolean> {
+    const shift = await this.shiftRepository.findOne({
+      where: {
+        branch: { id: dto.branch?.id },
+        cashier: { id: dto.id },
+        status: ShiftStatus.OPEN,
+      },
+    });
+    return shift ? true : false;
+  }
+
+  /**
+   * Admin-only: sums prepared order totals into actualEndMoney, marks the shift calculated,
+   * and batch-updates linked prepared orders to SHIFT_CALCULATED inside one transaction.
+   */
+  async calculateOrdersTotals(id: number, creator?: string): Promise<number> {
     return this.shiftRepository.manager.transaction(async (manager) => {
       const shiftRepo = manager.getRepository(ShiftManagement);
       const orderRepo = manager.getRepository(Order);
 
       const shift = await shiftRepo.findOne({
-        where: { id: shiftId },
-        relations: ['branch'],
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!shift) {
-        throw new NotFoundException(`Shift ${shiftId} not found`);
+        throw new NotFoundException('Shift not found');
       }
-      if (shift.status === ShiftStatus.CLOSED) {
-        throw new BadRequestException(`Shift ${shiftId} is already closed`);
+      if (shift.status === ShiftStatus.CALCULATED) {
+        throw new BadRequestException('Shift has already been calculated');
+      }
+      if (shift.status !== ShiftStatus.CLOSED) {
+        throw new BadRequestException(
+          'Shift must be closed before calculating totals',
+        );
       }
 
-      const preparedOrders = await orderRepo.find({
-        where: {
-          shift: { id: shiftId },
-          status: OrderStatus.PREPARED,
-        },
-      });
-
-      const allShiftOrders = await orderRepo.count({
-        where: { shift: { id: shiftId } },
-      });
-
-      const ordersTotalRow = await orderRepo
+      const aggregate = await orderRepo
         .createQueryBuilder('order')
         .select('COALESCE(SUM(order.total_amount), 0)', 'total')
-        .where('order.shift_management_id = :shiftId', { shiftId })
-        .andWhere('order.status = :status', {
-          status: OrderStatus.PREPARED,
+        .addSelect('COUNT(order.id)', 'count')
+        .where('order.shift_management_id = :shiftId', { shiftId: id })
+        .andWhere('order.status = :status', { status: OrderStatus.PREPARED })
+        .getRawOne<{ total: string; count: string }>();
+
+      const actualEndMoney = roundMoney(Number(aggregate?.total ?? 0));
+      const totalOrders = Number(aggregate?.count ?? 0);
+
+      await orderRepo
+        .createQueryBuilder()
+        .update(Order)
+        .set({
+          status: OrderStatus.SHIFT_CALCULATED,
+          updatedBy: creator,
         })
-        .getRawOne<{ total: string }>();
+        .where('shift_management_id = :shiftId', { shiftId: id })
+        .andWhere('status = :status', { status: OrderStatus.PREPARED })
+        .execute();
 
-      if (preparedOrders.length > 0) {
-        for (const order of preparedOrders) {
-          order.status = OrderStatus.SHIFT_CALCULATED;
-          order.updatedBy = updater;
-        }
-        await orderRepo.save(preparedOrders);
-      }
+      shift.status = ShiftStatus.CALCULATED;
+      shift.actualEndMoney = actualEndMoney;
+      shift.totalOrders = totalOrders;
+      shift.updatedBy = creator;
+      await shiftRepo.save(shift);
 
-      shift.endShift = new Date();
-      shift.endMoney = dto.endMoney;
-      shift.actualEndMoney = roundMoney(Number(ordersTotalRow?.total ?? 0));
-      shift.status = ShiftStatus.CLOSED;
-      shift.totalOrders = allShiftOrders;
-      if (dto.notes !== undefined) {
-        shift.notes = dto.notes;
-      }
-      shift.updatedBy = updater;
-
-      await manager.getRepository(Branch).update(
-        { id: shift.branch.id },
-        { nextOrderQueue: resetOrderQueueCounter() },
-      );
-
-      return shiftRepo.save(shift);
+      return actualEndMoney;
     });
   }
 }

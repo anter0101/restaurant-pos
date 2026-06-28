@@ -62,8 +62,6 @@ export class ShiftManagement extends BaseEntity {
   @Column({ name: 'total_orders', type: 'int4', nullable: true })
   totalOrders?: number;
 
-  @Column({ type: 'text', nullable: true })
-  notes?: string;
 
   @OneToMany(() => Order, (order) => order.shift)
   orders: Order[];

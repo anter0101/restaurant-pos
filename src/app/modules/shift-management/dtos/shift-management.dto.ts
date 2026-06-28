@@ -46,11 +46,6 @@ export class ShiftManagementDTO extends BaseDTO {
   @IsOptional()
   @IsNumber()
   totalOrders?: number;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
 export class OpenShiftDTO {

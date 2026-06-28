@@ -59,11 +59,6 @@ export class CreateShiftManagementsTable1730870400007
             type: 'int4',
             isNullable: true,
           },
-          {
-            name: 'notes',
-            type: 'text',
-            isNullable: true,
-          },
           ...otherBaseColumns,
         ],
       }),
