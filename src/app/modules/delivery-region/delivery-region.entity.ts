@@ -3,7 +3,6 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  Unique,
   OneToMany,
 } from 'typeorm';
 import { BaseEntity } from 'src/core/utils/base.entity';
@@ -12,14 +11,13 @@ import { Branch } from '../branch/branch.entity';
 import { Order } from '../order/order.entity';
 
 @Entity('delivery_regions')
-@Unique(['branch', 'regionName'])
 export class DeliveryRegion extends BaseEntity {
   @ManyToOne(() => Branch, (branch) => branch.deliveryRegions, {
-    nullable: false,
-    onDelete: 'CASCADE',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'branch_id' })
-  branch: Branch;
+  branch?: Branch;
 
   @Column({ name: 'region_name', type: 'varchar', nullable: false })
   regionName: string;

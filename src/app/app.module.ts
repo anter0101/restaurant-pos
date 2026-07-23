@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './modules/user/user.module';
@@ -7,6 +7,7 @@ import { MenuCategoryModule } from './modules/menu-category/menu-category.module
 import { MenuItemModule } from './modules/menu-item/menu-item.module';
 import { DeliveryRegionModule } from './modules/delivery-region/delivery-region.module';
 import { ShiftManagementModule } from './modules/shift-management/shift-management.module';
+import { CustomerModule } from './modules/customer/customer.module';
 import { OrderModule } from './modules/order/order.module';
 import { AuthModule } from './modules/auth/auth.module';
 import PostgresTypeorm from 'src/config/db-config';
@@ -28,6 +29,7 @@ import PostgresTypeorm from 'src/config/db-config';
     MenuItemModule,
     DeliveryRegionModule,
     ShiftManagementModule,
+    CustomerModule,
     OrderModule,
   ],
   controllers: [],

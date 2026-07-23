@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { OrderDTO, OrderItemDTO } from './dtos/order.dto';
@@ -8,7 +8,7 @@ import {
 } from './dtos/create-order.dto';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { Branch } from '../branch/branch.entity';
-import { User } from '../user/user.entity';
+import { Customer } from '../customer/customer.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
 import { ShiftManagement } from '../shift-management/shift-management.entity';
 import { MenuItem } from '../menu-item/menu-item.entity';
@@ -177,7 +177,7 @@ export type CreateOrderEntityInput = {
   dto: CreateOrderDTO;
   branch: Branch;
   shift: ShiftManagement;
-  customer?: User;
+  customer?: Customer;
   deliveryRegion?: DeliveryRegion;
   orderQueue: number;
   itemsSubtotal: number;

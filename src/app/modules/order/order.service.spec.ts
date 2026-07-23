@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { OrderService } from './order.service';
@@ -11,7 +11,8 @@ import { OrderStatus } from 'src/core/enums/order-status';
 import { OrderType } from 'src/core/enums/order-type';
 import { BranchType } from 'src/core/enums/branch-type';
 import { ShiftManagementService } from '../shift-management/shift-management.service';
-import { User } from '../user/user.entity';
+import { Customer } from '../customer/customer.entity';
+import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
 import { ShiftStatus } from 'src/core/enums/shift-status';
 import { CreateOrderDTO } from './dtos/create-order.dto';
 
@@ -119,7 +120,11 @@ describe('OrderService', () => {
                     ? 'menuItem'
                     : entity === RelMenuBranch
                       ? 'relMenuBranch'
-                      : 'default';
+                      : entity === Customer
+                        ? 'customer'
+                        : entity === DeliveryRegion
+                          ? 'deliveryRegion'
+                          : 'default';
           return repos[key] ?? { findOne: jest.fn(), find: jest.fn() };
         }),
       };
@@ -150,7 +155,7 @@ describe('OrderService', () => {
     ).rejects.toThrow(/No open shift found/);
   });
 
-  it('rejects when client totalAmount does not match server calculation', async () => {
+  it('rejects when POS totalAmount does not match server calculation', async () => {
     mockTransaction({
       branch: {
         findOne: jest.fn().mockResolvedValue({ ...branchEntity }),
@@ -168,7 +173,7 @@ describe('OrderService', () => {
     ).rejects.toThrow(/totalAmount mismatch/);
   });
 
-  it('rejects when client unitPrice does not match menu price', async () => {
+  it('rejects when POS unitPrice does not match menu price', async () => {
     mockTransaction({
       branch: {
         findOne: jest.fn().mockResolvedValue({ ...branchEntity }),
@@ -222,7 +227,7 @@ describe('OrderService', () => {
     expect(branchSave).toHaveBeenCalledWith(
       expect.objectContaining({ nextOrderQueue: 6 }),
     );
-    expect(result.status).toBe(OrderStatus.PENDING);
+    expect(result.status).toBe(OrderStatus.PREPARED);
     expect(result.itemsSubtotal).toBe(40);
     expect(result.serviceFee).toBe(4);
     expect(result.totalAmount).toBe(44);
@@ -369,7 +374,14 @@ describe('OrderService', () => {
     expect(result.totalAmount).toBe(20);
   });
 
-  it('requires deliveryRegionId for DELIVERY order type', async () => {
+  it('requires deliveryRegionId for DELIVERY order type without customer default', async () => {
+    mockTransaction({
+      branch: {
+        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
+        save: jest.fn(),
+      },
+    });
+
     await expect(
       service.createOrder(
         buildOrderDto({
@@ -391,12 +403,11 @@ describe('OrderService', () => {
         findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0.1 }),
         save: jest.fn(),
       },
-      default: {
-        findOne: jest.fn().mockImplementation(({ where }) => {
-          if (where?.id === 2) {
-            return Promise.resolve({ id: 2, deliveryPrice: 5, regionName: 'North' });
-          }
-          return Promise.resolve(null);
+      deliveryRegion: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 2,
+          deliveryPrice: 5,
+          regionName: 'North',
         }),
       },
       menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
@@ -451,5 +462,49 @@ describe('OrderService', () => {
 
     expect(result.serviceFee).toBe(0);
     expect(result.totalAmount).toBe(40);
+  });
+
+  it('uses customer default delivery region when deliveryRegionId is omitted', async () => {
+    mockTransaction({
+      branch: {
+        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
+        save: jest.fn(),
+      },
+      customer: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 7,
+          name: 'customer',
+          defaultDeliveryRegion: { id: 3, deliveryPrice: 8 },
+        }),
+      },
+      deliveryRegion: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 3,
+          deliveryPrice: 8,
+          regionName: 'Downtown',
+        }),
+      },
+      menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
+      relMenuBranch: { find: jest.fn().mockResolvedValue([]) },
+      order: {
+        save: jest.fn().mockImplementation(async (order) => order),
+      },
+    });
+
+    const result = await service.createOrder(
+      buildOrderDto({
+        orderType: OrderType.DELIVERY,
+        customerId: 7,
+        items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
+        itemsSubtotal: 20,
+        deliveryFees: 8,
+        serviceFee: 0,
+        totalAmount: 28,
+      }),
+      cashierUser,
+    );
+
+    expect(result.deliveryFees).toBe(8);
+    expect(result.customer?.id).toBe(7);
   });
 });

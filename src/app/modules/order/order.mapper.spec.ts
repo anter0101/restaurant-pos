@@ -1,4 +1,4 @@
-import {
+﻿import {
   calculateItemsSubtotal,
   mapCreateOrderItemsToEntities,
   mapCreateOrderToEntity,
@@ -41,7 +41,7 @@ describe('order.mapper', () => {
     expect(items[0].createdBy).toBe('cashier');
   });
 
-  it('mapCreateOrderItemsToEntities rejects wrong client unit price', () => {
+  it('mapCreateOrderItemsToEntities rejects wrong POS unit price', () => {
     expect(() =>
       mapCreateOrderItemsToEntities(
         [{ menuItemId: 10, quantity: 2, unitPrice: 99 }],

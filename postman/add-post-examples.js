@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 
 const collectionPath = path.join(__dirname, 'restaurant-pos.postman_collection.json');
-const collection = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+const collection = JSON.parse(
+  fs.readFileSync(collectionPath, 'utf8').replace(/^\uFEFF/, ''),
+);
 
 const jsonHeader = [{ key: 'Content-Type', value: 'application/json' }];
 
@@ -129,6 +131,25 @@ function examplesForPost(url, req) {
         regionName: 'Downtown',
         deliveryPrice: 5.5,
         branch: { id: 1, name: 'Main Branch', type: 'DINE_IN' },
+        createdAt: '2026-06-16T10:00:00.000Z',
+        updatedAt: '2026-06-16T10:00:00.000Z',
+      }, originalRequest),
+    ];
+  }
+
+  if (u.includes('/customers') && !u.includes('by-phone') && !u.match(/\/\d+/)) {
+    return [
+      example('201 Created — customer', 'Created', 201, {
+        id: 1,
+        name: 'محمد',
+        phone: '01012345678',
+        address: 'شارع الجلاء',
+        customerType: 'NORMAL',
+        defaultDeliveryRegion: {
+          id: 1,
+          regionName: 'Downtown',
+          deliveryPrice: 5.5,
+        },
         createdAt: '2026-06-16T10:00:00.000Z',
         updatedAt: '2026-06-16T10:00:00.000Z',
       }, originalRequest),
@@ -293,7 +314,7 @@ function ensureJsonBodyOption(items) {
 ensureJsonBodyOption(collection.item);
 
 collection.info.description =
-  'Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Order create resolves branch and open shift from the logged-in user. Service fee applies to DINE_IN only.';
+  'Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, customers module, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Orders use customerId (end-customer). Service fee applies to DINE_IN only.';
 
 fs.writeFileSync(collectionPath, JSON.stringify(collection, null, 2) + '\n');
 console.log('Added response examples to all POST requests.');

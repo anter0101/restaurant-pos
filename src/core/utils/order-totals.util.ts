@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+﻿import { BadRequestException } from '@nestjs/common';
 import { OrderType } from 'src/core/enums/order-type';
 
 export function roundMoney(value: number): number {
@@ -13,27 +13,27 @@ export type OrderTotals = {
 };
 
 export function assertMoneyEquals(
-  clientValue: number,
+  submittedValue: number,
   serverValue: number,
   fieldName: string,
 ): void {
-  const client = roundMoney(clientValue);
+  const submitted = roundMoney(submittedValue);
   const server = roundMoney(serverValue);
-  if (client !== server) {
+  if (submitted !== server) {
     throw new BadRequestException(
-      `${fieldName} mismatch: client sent ${client}, expected ${server}`,
+      `${fieldName} mismatch: POS sent ${submitted}, expected ${server}`,
     );
   }
 }
 
 export function assertOrderTotalsMatch(
-  client: OrderTotals,
+  submitted: OrderTotals,
   server: OrderTotals,
 ): void {
-  assertMoneyEquals(client.itemsSubtotal, server.itemsSubtotal, 'itemsSubtotal');
-  assertMoneyEquals(client.deliveryFees, server.deliveryFees, 'deliveryFees');
-  assertMoneyEquals(client.serviceFee, server.serviceFee, 'serviceFee');
-  assertMoneyEquals(client.totalAmount, server.totalAmount, 'totalAmount');
+  assertMoneyEquals(submitted.itemsSubtotal, server.itemsSubtotal, 'itemsSubtotal');
+  assertMoneyEquals(submitted.deliveryFees, server.deliveryFees, 'deliveryFees');
+  assertMoneyEquals(submitted.serviceFee, server.serviceFee, 'serviceFee');
+  assertMoneyEquals(submitted.totalAmount, server.totalAmount, 'totalAmount');
 }
 
 export function calculateItemsSubtotalFromLines(

@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -14,7 +14,7 @@ import {
 import { Order } from './order.entity';
 import { CreateOrderDTO } from './dtos/create-order.dto';
 import { Branch } from '../branch/branch.entity';
-import { User } from '../user/user.entity';
+import { Customer } from '../customer/customer.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
 import { MenuItem } from '../menu-item/menu-item.entity';
 import { RelMenuBranch } from '../menu-item/rel-menu-branch.entity';
@@ -38,6 +38,7 @@ import {
   mapCreateOrderItemsToEntities,
   mapCreateOrderToEntity,
 } from './order.mapper';
+import { User } from '../user/user.entity';
 
 @Injectable()
 export class OrderService {
@@ -57,6 +58,7 @@ export class OrderService {
         'deliveryRegion',
         'shift',
         'customer',
+        'customer.defaultDeliveryRegion',
       ],
     });
     return result ?? undefined;
@@ -100,7 +102,11 @@ export class OrderService {
       );
     }
 
-    assertDeliveryRegionMatchesOrderType(dto.orderType, dto.deliveryRegionId);
+    if (dto.orderType !== OrderType.DELIVERY && dto.deliveryRegionId) {
+      throw new BadRequestException(
+        `deliveryRegionId is only allowed for DELIVERY orders, not ${dto.orderType}`,
+      );
+    }
 
     return this.orderRepository.manager.transaction(async (manager) => {
       const branch = await manager.getRepository(Branch).findOne({
@@ -121,8 +127,15 @@ export class OrderService {
       await manager.getRepository(Branch).save(branch);
 
       const customer = await this.resolveCustomer(manager, dto.customerId);
+      const effectiveDeliveryRegionId =
+        dto.deliveryRegionId ?? customer?.defaultDeliveryRegion?.id;
+      assertDeliveryRegionMatchesOrderType(
+        dto.orderType,
+        effectiveDeliveryRegionId,
+      );
+
       const { deliveryRegion, deliveryFees } =
-        await this.resolveDeliveryRegion(manager, dto, branchId);
+        await this.resolveDeliveryRegion(manager, dto.orderType, effectiveDeliveryRegionId);
       const { menuItemById, priceByMenuItemId } = await this.loadMenuPricing(
         manager,
         dto,
@@ -185,14 +198,15 @@ export class OrderService {
   private async resolveCustomer(
     manager: EntityManager,
     customerId?: number,
-  ): Promise<User | undefined> {
+  ): Promise<Customer | undefined> {
     if (!customerId) {
       return undefined;
     }
 
     const customer =
-      (await manager.getRepository(User).findOne({
+      (await manager.getRepository(Customer).findOne({
         where: { id: customerId },
+        relations: ['defaultDeliveryRegion'],
       })) ?? undefined;
     if (!customer) {
       throw new NotFoundException(`Customer ${customerId} not found`);
@@ -203,20 +217,20 @@ export class OrderService {
 
   private async resolveDeliveryRegion(
     manager: EntityManager,
-    dto: CreateOrderDTO,
-    branchId: number,
+    orderType: OrderType,
+    deliveryRegionId?: number,
   ): Promise<{ deliveryRegion?: DeliveryRegion; deliveryFees: number }> {
-    if (dto.orderType !== OrderType.DELIVERY) {
+    if (orderType !== OrderType.DELIVERY) {
       return { deliveryFees: 0 };
     }
 
     const deliveryRegion =
       (await manager.getRepository(DeliveryRegion).findOne({
-        where: { id: dto.deliveryRegionId, branch: { id: branchId } },
+        where: { id: deliveryRegionId },
       })) ?? undefined;
     if (!deliveryRegion) {
       throw new NotFoundException(
-        `Delivery region ${dto.deliveryRegionId} not found for branch ${branchId}`,
+        `Delivery region ${deliveryRegionId} not found`,
       );
     }
 

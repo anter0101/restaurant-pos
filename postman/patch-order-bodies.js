@@ -1,11 +1,13 @@
-/**
+﻿/**
  * Updates order POST bodies in Postman collection for POS total validation.
  */
 const fs = require('fs');
 const path = require('path');
 
 const collectionPath = path.join(__dirname, 'restaurant-pos.postman_collection.json');
-const collection = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+const collection = JSON.parse(
+  fs.readFileSync(collectionPath, 'utf8').replace(/^\uFEFF/, ''),
+);
 
 const ORDER_BODIES = {
   DINE_IN_2: {
@@ -18,7 +20,7 @@ const ORDER_BODIES = {
   },
   DINE_IN_MULTI: {
     orderType: 'DINE_IN',
-    customerId: '{{userId}}',
+    customerId: '{{customerId}}',
     items: [
       { menuItemId: '{{menuItemId}}', quantity: 1, unitPrice: 12.5 },
       { menuItemId: '{{menuItemId}}', quantity: 2, unitPrice: 12.5 },
@@ -38,6 +40,7 @@ const ORDER_BODIES = {
   },
   DELIVERY_2: {
     orderType: 'DELIVERY',
+    customerId: '{{customerId}}',
     deliveryRegionId: '{{deliveryRegionId}}',
     items: [{ menuItemId: '{{menuItemId}}', quantity: 2, unitPrice: 12.5 }],
     itemsSubtotal: 25,
@@ -78,7 +81,7 @@ function walk(items) {
 walk(collection.item);
 
 collection.info.description =
-  'Restaurant POS API — Bearer auth, POS-style order validation (client totals must match server), saved POST examples, E2E scenarios. Service fee on DINE_IN only.';
+  'Restaurant POS API — Bearer auth, POS-style order validation (submitted totals must match server), saved POST examples, E2E scenarios. Service fee on DINE_IN only.';
 
 fs.writeFileSync(collectionPath, JSON.stringify(collection, null, 2) + '\n');
 console.log('Patched order POST bodies for POS validation.');

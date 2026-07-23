@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   Column,
   ManyToOne,
@@ -10,7 +10,7 @@ import { decimalNumberTransformer } from 'src/core/utils/decimal-number.transfor
 import { OrderStatus } from 'src/core/enums/order-status';
 import { OrderType } from 'src/core/enums/order-type';
 import { Branch } from '../branch/branch.entity';
-import { User } from '../user/user.entity';
+import { Customer } from '../customer/customer.entity';
 import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
 import { ShiftManagement } from '../shift-management/shift-management.entity';
 import { OrderItem } from './order-item.entity';
@@ -23,9 +23,9 @@ export class Order extends BaseEntity {
   @JoinColumn({ name: 'branch_id' })
   branch: Branch;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => Customer, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'customer_id' })
-  customer?: User;
+  customer?: Customer;
 
   @ManyToOne(() => DeliveryRegion, (region) => region.orders, {
     nullable: true,

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Restaurant POS API",
-    "description": "Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Order create resolves branch and open shift from the logged-in user. Service fee applies to DINE_IN only.",
+    "description": "Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, customers module, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Orders use customerId (end-customer). Service fee applies to DINE_IN only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -70,6 +70,14 @@
     {
       "key": "lastOrderQueue",
       "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": "1"
+    },
+    {
+      "key": "customerPhone",
+      "value": "01012345678"
     }
   ],
   "item": [
@@ -476,7 +484,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -499,7 +507,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1380,8 +1388,47 @@
                     }
                   }
                 },
-                "url": "{{baseUrl}}/api/v1/auth/login"
-              }
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
             },
             {
               "name": "2. Open shift",
@@ -1402,7 +1449,28 @@
                 "method": "POST",
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
                 "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
-              }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
             },
             {
               "name": "3. Has open shift",
@@ -1434,15 +1502,52 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [{ \"menuItemId\": {{menuItemId}}, \"quantity\": 2, \"unitPrice\": 12.5 }],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 25\n}",
+                  "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
                 },
-                "url": "{{baseUrl}}/api/v1/orders"
-              }
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — takeaway order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"TAKEAWAY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
             },
             {
               "name": "5. End shift",
@@ -1464,7 +1569,28 @@
                 "method": "POST",
                 "url": "{{baseUrl}}/api/v1/shift-managements/end",
                 "description": "Closes the logged-in cashier open shift at their branch. No request body."
-              }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift closed",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                    "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+                }
+              ]
             },
             {
               "name": "6. Has open shift (false)",
@@ -1500,8 +1626,29 @@
               ],
               "request": {
                 "method": "POST",
-                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
-              }
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — calculated end money",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "40"
+                }
+              ]
             },
             {
               "name": "8. Get shift (calculated)",
@@ -1823,7 +1970,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1846,7 +1993,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1960,8 +2107,29 @@
               ],
               "request": {
                 "method": "POST",
-                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
-              }
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — calculated end money",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "40"
+                }
+              ]
             },
             {
               "name": "8. Get shift (calculated)",
@@ -2738,6 +2906,188 @@
       ]
     },
     {
+      "name": "customers",
+      "description": "End-customer phone book (separate from staff users). Orders reference customers via customerId.",
+      "item": [
+        {
+          "name": "Search customer by phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rows = pm.response.json();",
+                  "const match = Array.isArray(rows) ? rows.find((c) => c.phone === pm.collectionVariables.get('customerPhone')) || rows[0] : null;",
+                  "if (match?.id) pm.collectionVariables.set('customerId', String(match.id));",
+                  "if (match?.phone) pm.collectionVariables.set('customerPhone', String(match.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?page=1&pageSize=10&search={{customerPhone}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "{{customerPhone}}",
+                  "description": "phone number (also matches name, address)"
+                },
+                {
+                  "key": "customerType",
+                  "value": "NORMAL",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Call-center lookup — set `customerPhone` collection variable, then run. Saves `customerId` from the first match."
+          }
+        },
+        {
+          "name": "Get customer by phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('customerId', String(j.id));",
+                  "if(j.phone) pm.collectionVariables.set('customerPhone', String(j.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/customers/by-phone/{{customerPhone}}",
+            "description": "Exact phone lookup (path param). Also sets `customerId` and `customerPhone` collection variables."
+          }
+        },
+        {
+          "name": "Create customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('customerId', String(j.id));",
+                  "if(j.phone) pm.collectionVariables.set('customerPhone', String(j.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/customers",
+            "description": "Creates an end-customer record. defaultDeliveryRegionId is optional — when set, DELIVERY orders can omit deliveryRegionId."
+          },
+          "response": [
+            {
+              "name": "201 Created — customer",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/customers",
+                "description": "Creates an end-customer record. defaultDeliveryRegionId is optional — when set, DELIVERY orders can omit deliveryRegionId."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegion\": {\n    \"id\": 1,\n    \"regionName\": \"Downtown\",\n    \"deliveryPrice\": 5.5\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get customer by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"address\": \"شارع الجلاء - محدث\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Delete customer",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "shift-managements",
       "item": [
         {
@@ -2961,7 +3311,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=10&branchId={{branchId}}&shiftId={{shiftId}}",
+              "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=10&customerId={{customerId}}&branchId={{branchId}}&shiftId={{shiftId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2996,6 +3346,11 @@
                   "key": "orderType",
                   "value": "DINE_IN",
                   "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}",
+                  "disabled": true
                 }
               ]
             }
@@ -3026,7 +3381,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{userId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
+              "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{customerId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3049,7 +3404,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{userId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{customerId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3144,7 +3499,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3167,7 +3522,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
