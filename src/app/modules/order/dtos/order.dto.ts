@@ -48,6 +48,14 @@ export class OrderDTO extends BaseDTO {
   @IsNumber()
   deliveryFees: number;
 
+  @ApiProperty({
+    example: 'شارع الجلاء عمارة 5',
+    required: false,
+    description: 'Snapshot of delivery address (DELIVERY orders only)',
+  })
+  @IsOptional()
+  deliveryAddress?: string;
+
   @ApiProperty({ example: 4 })
   @IsNumber()
   serviceFee: number;

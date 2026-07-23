@@ -1,11 +1,13 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -51,6 +53,26 @@ export class CreateOrderDTO {
   @IsInt()
   @Min(1)
   deliveryRegionId?: number;
+
+  @ApiProperty({
+    example: 'شارع الجلاء عمارة 5',
+    required: false,
+    description:
+      'Delivery street address; defaults to customer.address when omitted',
+  })
+  @IsOptional()
+  @IsString()
+  deliveryAddress?: string;
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    description:
+      'When true, update customer address and default delivery region from this order',
+  })
+  @IsOptional()
+  @IsBoolean()
+  updateCustomerProfile?: boolean;
 
   @ApiProperty({
     example: 37.5,

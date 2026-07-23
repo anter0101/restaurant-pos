@@ -41,7 +41,9 @@ const ORDER_BODIES = {
   DELIVERY_2: {
     orderType: 'DELIVERY',
     customerId: '{{customerId}}',
+    deliveryAddress: 'شارع الجلاء عمارة 5',
     deliveryRegionId: '{{deliveryRegionId}}',
+    updateCustomerProfile: false,
     items: [{ menuItemId: '{{menuItemId}}', quantity: 2, unitPrice: 12.5 }],
     itemsSubtotal: 25,
     deliveryFees: 5.5,
@@ -73,7 +75,7 @@ function walk(items) {
       req.body.raw = patchOrderBody(req.body.raw);
       req.body.options = { raw: { language: 'json' } };
       req.description =
-        'POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT.';
+        'POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT.';
     }
   }
 }

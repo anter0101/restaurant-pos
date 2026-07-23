@@ -108,6 +108,24 @@ export class OrderService {
       );
     }
 
+    if (dto.orderType !== OrderType.DELIVERY && dto.deliveryAddress) {
+      throw new BadRequestException(
+        `deliveryAddress is only allowed for DELIVERY orders, not ${dto.orderType}`,
+      );
+    }
+
+    if (dto.updateCustomerProfile && !dto.customerId) {
+      throw new BadRequestException(
+        'customerId is required when updateCustomerProfile is true',
+      );
+    }
+
+    if (dto.orderType !== OrderType.DELIVERY && dto.updateCustomerProfile) {
+      throw new BadRequestException(
+        `updateCustomerProfile is only allowed for DELIVERY orders, not ${dto.orderType}`,
+      );
+    }
+
     return this.orderRepository.manager.transaction(async (manager) => {
       const branch = await manager.getRepository(Branch).findOne({
         where: { id: branchId },
@@ -127,8 +145,18 @@ export class OrderService {
       await manager.getRepository(Branch).save(branch);
 
       const customer = await this.resolveCustomer(manager, dto.customerId);
+
+      const effectiveDeliveryAddress =
+        dto.deliveryAddress?.trim() || customer?.address?.trim() || undefined;
       const effectiveDeliveryRegionId =
         dto.deliveryRegionId ?? customer?.defaultDeliveryRegion?.id;
+
+      if (dto.orderType === OrderType.DELIVERY && !effectiveDeliveryAddress) {
+        throw new BadRequestException(
+          'deliveryAddress is required for DELIVERY orders',
+        );
+      }
+
       assertDeliveryRegionMatchesOrderType(
         dto.orderType,
         effectiveDeliveryRegionId,
@@ -185,11 +213,18 @@ export class OrderService {
         orderQueue,
         itemsSubtotal: serverItemsSubtotal,
         deliveryFees,
+        deliveryAddress: effectiveDeliveryAddress,
         serviceFee: serverServiceFee,
         totalAmount: serverTotalAmount,
         orderItems,
         creator: user.username,
       });
+
+      if (dto.updateCustomerProfile && customer) {
+        customer.address = effectiveDeliveryAddress;
+        customer.defaultDeliveryRegion = deliveryRegion;
+        await manager.getRepository(Customer).save(customer);
+      }
 
       return manager.getRepository(Order).save(order);
     });

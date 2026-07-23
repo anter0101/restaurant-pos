@@ -30,7 +30,7 @@ Postman → **Import** → select `postman/restaurant-pos.postman_collection.jso
 | PUT | `/customers/:id` | Admin, Call center, Manager | Update contact / default region |
 | DELETE | `/customers/:id` | Admin, Manager | |
 
-Orders accept optional `customerId` (end-customer). For `DELIVERY`, `deliveryRegionId` can be omitted when the customer has `defaultDeliveryRegion`.
+Orders accept optional `customerId` (end-customer). For `DELIVERY`, `deliveryAddress` and `deliveryRegionId` default from the customer profile when omitted. Set `updateCustomerProfile: true` to save the order’s address and zone back to the customer.
 
 ### Shift management endpoints
 

@@ -57,6 +57,13 @@ export class Order extends BaseEntity {
  
 
   @Column({
+    name: 'delivery_address',
+    type: 'varchar',
+    nullable: true,
+  })
+  deliveryAddress?: string;
+
+  @Column({
     name: 'delivery_fees',
     type: 'decimal',
     precision: 10,

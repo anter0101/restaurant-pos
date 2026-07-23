@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Restaurant POS API",
-    "description": "Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, customers module, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Orders use customerId (end-customer). Service fee applies to DINE_IN only.",
+    "description": "Restaurant POS API — Bearer auth, POS-style order validation (submitted totals must match server), saved POST examples, E2E scenarios. Service fee on DINE_IN only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -258,7 +258,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -484,7 +484,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -492,7 +492,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -698,7 +698,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -770,7 +770,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -946,7 +946,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1155,7 +1155,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1239,7 +1239,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1310,7 +1310,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1510,7 +1510,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1906,7 +1906,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1970,7 +1970,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1978,7 +1978,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -3389,7 +3389,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {
@@ -3448,7 +3448,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {
@@ -3499,7 +3499,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3507,7 +3507,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {

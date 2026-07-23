@@ -30,6 +30,7 @@ const allowedOrderDtoKeys: ReadonlyArray<keyof OrderDTO | keyof BaseDTO> = [
   'orderQueue',
   'itemsSubtotal',
   'deliveryFees',
+  'deliveryAddress',
   'serviceFee',
   'totalAmount',
   'items',
@@ -185,6 +186,7 @@ export type CreateOrderEntityInput = {
   serviceFee: number;
   totalAmount: number;
   orderItems: OrderItem[];
+  deliveryAddress?: string;
   creator?: string;
 };
 
@@ -199,6 +201,7 @@ export function mapCreateOrderToEntity(input: CreateOrderEntityInput): Order {
   order.orderQueue = input.orderQueue;
   order.itemsSubtotal = input.itemsSubtotal;
   order.deliveryFees = input.deliveryFees;
+  order.deliveryAddress = input.deliveryAddress;
   order.serviceFee = input.serviceFee;
   order.totalAmount = input.totalAmount;
   order.status = resolveInitialOrderStatus(input.branch);
