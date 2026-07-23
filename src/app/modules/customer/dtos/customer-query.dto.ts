@@ -10,5 +10,5 @@ export class CustomerQueryDTO extends PaginateDTO {
   @IsEnum(CustomerType)
   customerType?: CustomerType;
   
-  phoneNumber?: string;
+  
 }

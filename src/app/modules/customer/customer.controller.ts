@@ -100,11 +100,6 @@ export class CustomerController {
       where.customerType = query.customerType;
     }
 
-    if (query.phoneNumber !== undefined) {
-      where.phone = Like(`%${query.phoneNumber}%`);
-      where.alternativePhone = Like(`%${query.phoneNumber}%`);
-    }
-
 
     const findOptions = buildSearchQuery<Customer>({
       query,
