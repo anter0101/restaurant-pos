@@ -83,7 +83,7 @@ const customersFolder = {
         },
         url: '{{baseUrl}}/api/v1/customers',
         description:
-          'Creates an end-customer record. defaultDeliveryRegionId is optional — when set, DELIVERY orders can omit deliveryRegionId.',
+          'Creates an end-customer record. address + defaultDeliveryRegionId prefill DELIVERY orders; both can be overridden per order.',
       },
     },
     {

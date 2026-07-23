@@ -216,6 +216,7 @@ function examplesForPost(url, req) {
           orderQueue: 0,
           itemsSubtotal: subtotal,
           deliveryFees,
+          ...(isDelivery ? { deliveryAddress: 'شارع الجلاء عمارة 5' } : {}),
           serviceFee,
           totalAmount: Math.round((subtotal + deliveryFees + serviceFee) * 100) / 100,
           status: 'PENDING',
