@@ -30,15 +30,15 @@ Postman → **Import** → select `postman/restaurant-pos.postman_collection.jso
 | PUT | `/customers/:id` | Admin, Call center, Manager | Update contact / default region |
 | DELETE | `/customers/:id` | Admin, Manager | |
 
-Orders accept optional `customerId` (end-customer). For `DELIVERY`, `deliveryAddress` and `deliveryRegionId` default from the customer profile when omitted. Set `updateCustomerProfile: true` to save the order’s address and zone back to the customer.
+Orders accept optional `customerId`. Customers have `address`, `secondaryAddress`, and `thirdAddress` — POS picks one and sends it as `deliveryAddress` on DELIVERY orders. `deliveryRegionId` defaults from customer when omitted. `customDeliveryPrice` overrides the region fee.
 
 ### Shift management endpoints
 
 | Method | Path | Role | Notes |
 |--------|------|------|-------|
 | GET | `/shift-managements` | Admin | Paginated list, filter by `branchId`, `cashierId`, `status` |
-| POST | `/shift-managements/open` | Cashier | No body — opens shift for logged-in cashier |
-| POST | `/shift-managements/end` | Cashier | No body — closes logged-in cashier's open shift |
+| POST | `/shift-managements/open` | Cashier (JWT) | Body: `username` + `password` (manager credentials). Opens shift for logged-in cashier. |
+| POST | `/shift-managements/end` | Cashier (JWT) | Body: manager `username` + `password`. Closes logged-in cashier's open shift. |
 | GET | `/shift-managements/has-open-shift` | Cashier | Returns `true` / `false` |
 | GET | `/shift-managements/:id` | Admin | Shift detail including `isCalculatedShift`, `actualEndMoney` |
 | POST | `/shift-managements/:id/calculate-orders-totals` | Admin | Sums prepared orders, returns `actualEndMoney` |

@@ -33,6 +33,16 @@ export class CustomerDTO extends BaseDTO {
   @IsString()
   address?: string;
 
+  @ApiProperty({ required: false, example: 'شارع النصر' })
+  @IsOptional()
+  @IsString()
+  secondaryAddress?: string;
+
+  @ApiProperty({ required: false, example: 'شارع المعادي' })
+  @IsOptional()
+  @IsString()
+  thirdAddress?: string;
+
   @ApiProperty({ enum: CustomerType })
   @IsEnum(CustomerType)
   customerType: CustomerType;

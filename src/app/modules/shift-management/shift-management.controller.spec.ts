@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ShiftManagementController } from './shift-management.controller';
 import { ShiftManagementService } from './shift-management.service';
 import { ShiftStatus } from 'src/core/enums/shift-status';
+import { AuthService } from '../auth/auth.service';
+import { UserRole } from 'src/core/enums/user-role';
 
 describe('ShiftManagementController', () => {
   let controller: ShiftManagementController;
@@ -12,6 +14,7 @@ describe('ShiftManagementController', () => {
     findById: jest.Mock;
     findAndCount: jest.Mock;
   };
+  let authService: { validateCredentials: jest.Mock };
 
   beforeEach(async () => {
     shiftService = {
@@ -20,48 +23,66 @@ describe('ShiftManagementController', () => {
       findById: jest.fn(),
       findAndCount: jest.fn(),
     };
+    authService = { validateCredentials: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ShiftManagementController],
       providers: [
         { provide: ShiftManagementService, useValue: shiftService },
+        { provide: AuthService, useValue: authService },
       ],
     }).compile();
 
     controller = module.get(ShiftManagementController);
   });
 
-  it('openShift delegates to service', async () => {
+  it('openShift delegates to service after manager credential check', async () => {
     const shift = { id: 1, status: ShiftStatus.OPEN };
+    const cashier = {
+      id: 2,
+      username: 'cashier1',
+      role: UserRole.CASHIER,
+      branch: { id: 1 },
+    };
+    const manager = {
+      id: 5,
+      username: 'manager1',
+      role: UserRole.MANAGER,
+      branch: { id: 1 },
+    };
     shiftService.openShift.mockResolvedValue(shift);
+    authService.validateCredentials.mockResolvedValue(manager);
 
     const result = await controller.openShift(
-      { cashierId: 2 },
-      { username: 'admin' } as any,
+      { username: 'manager1', password: 'secret' },
+      cashier as any,
     );
 
-    expect(shiftService.openShift).toHaveBeenCalledWith(
-      { cashierId: 2 },
-      'admin',
+    expect(authService.validateCredentials).toHaveBeenCalledWith(
+      'manager1',
+      'secret',
     );
+    expect(shiftService.openShift).toHaveBeenCalledWith(cashier, manager);
     expect(result).toEqual(shift);
   });
 
-  it('endShift delegates to service', async () => {
+  it('endShift delegates to service after manager credential check', async () => {
     const shift = { id: 1, status: ShiftStatus.CLOSED };
+    const cashier = { id: 2, branch: { id: 1 }, role: UserRole.CASHIER };
+    const manager = { id: 5, role: UserRole.MANAGER, branch: { id: 1 } };
     shiftService.endShift.mockResolvedValue(shift);
+    authService.validateCredentials.mockResolvedValue(manager);
 
     const result = await controller.endShift(
-      1,
-      { endMoney: 100 },
-      { username: 'admin' } as any,
+      cashier as any,
+      { username: 'manager1', password: 'secret' },
     );
 
-    expect(shiftService.endShift).toHaveBeenCalledWith(
-      1,
-      { endMoney: 100 },
-      'admin',
+    expect(authService.validateCredentials).toHaveBeenCalledWith(
+      'manager1',
+      'secret',
     );
+    expect(shiftService.endShift).toHaveBeenCalledWith(cashier, manager);
     expect(result).toEqual(shift);
   });
 

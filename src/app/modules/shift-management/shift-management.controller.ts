@@ -22,6 +22,8 @@ import {
 
   Req,
 
+  UnauthorizedException,
+
   UseGuards,
 
 } from '@nestjs/common';
@@ -73,6 +75,8 @@ import {
 import { mapShiftManagementToShiftManagementDtoSelective } from './shift-management.mapper';
 
 import { FindOptionsWhere } from 'typeorm';
+import { RequestShiftManagementDTO } from './dtos/request.shit-managment,dto';
+import { AuthService } from 'src/app/modules/auth/auth.service';
 
 
 
@@ -92,7 +96,10 @@ export class ShiftManagementController {
 
 
 
-  constructor(private readonly shiftManagementService: ShiftManagementService) {}
+  constructor(
+    private readonly shiftManagementService: ShiftManagementService,
+    private readonly authService: AuthService,
+  ) {}
 
 
 
@@ -195,13 +202,18 @@ export class ShiftManagementController {
   @ApiResponse({ status: 201, type: ShiftManagement })
 
   async openShift(
-
-    @AuthUser() user: User,
-
+    @Body() request: RequestShiftManagementDTO,
+    @AuthUser() cashier: User,
   ): Promise<ShiftManagement> {
+    const manager = await this.authService.validateCredentials(
+      request.username,
+      request.password,
+    );
+    if (!manager) {
+      throw new UnauthorizedException('Invalid manager credentials!');
+    }
 
-    return this.shiftManagementService.openShift(user);
-
+    return this.shiftManagementService.openShift(cashier, manager);
   }
 
 
@@ -219,11 +231,20 @@ export class ShiftManagementController {
 
   async endShift(
 
-    @AuthUser() user: User,
-
+    @AuthUser() cashier: User,
+    @Body() request: RequestShiftManagementDTO,
   ): Promise<ShiftManagement> {
 
-    return this.shiftManagementService.endShift(user);
+    const manager = await this.authService.validateCredentials(
+      request.username,
+      request.password,
+    );
+    if (!manager) {
+      throw new UnauthorizedException('Invalid manager credentials!');
+    } 
+
+
+    return this.shiftManagementService.endShift(cashier, manager);
 
   }
 

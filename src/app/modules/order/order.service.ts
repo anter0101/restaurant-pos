@@ -114,15 +114,9 @@ export class OrderService {
       );
     }
 
-    if (dto.updateCustomerProfile && !dto.customerId) {
+    if (dto.orderType !== OrderType.DELIVERY && dto.customDeliveryPrice !== undefined) {
       throw new BadRequestException(
-        'customerId is required when updateCustomerProfile is true',
-      );
-    }
-
-    if (dto.orderType !== OrderType.DELIVERY && dto.updateCustomerProfile) {
-      throw new BadRequestException(
-        `updateCustomerProfile is only allowed for DELIVERY orders, not ${dto.orderType}`,
+        `customDeliveryPrice is only allowed for DELIVERY orders, not ${dto.orderType}`,
       );
     }
 
@@ -163,7 +157,12 @@ export class OrderService {
       );
 
       const { deliveryRegion, deliveryFees } =
-        await this.resolveDeliveryRegion(manager, dto.orderType, effectiveDeliveryRegionId);
+        await this.resolveDeliveryRegion(
+          manager,
+          dto.orderType,
+          effectiveDeliveryRegionId,
+          dto.customDeliveryPrice,
+        );
       const { menuItemById, priceByMenuItemId } = await this.loadMenuPricing(
         manager,
         dto,
@@ -220,12 +219,6 @@ export class OrderService {
         creator: user.username,
       });
 
-      if (dto.updateCustomerProfile && customer) {
-        customer.address = effectiveDeliveryAddress;
-        customer.defaultDeliveryRegion = deliveryRegion;
-        await manager.getRepository(Customer).save(customer);
-      }
-
       return manager.getRepository(Order).save(order);
     });
   }
@@ -254,6 +247,7 @@ export class OrderService {
     manager: EntityManager,
     orderType: OrderType,
     deliveryRegionId?: number,
+    customDeliveryPrice?: number,
   ): Promise<{ deliveryRegion?: DeliveryRegion; deliveryFees: number }> {
     if (orderType !== OrderType.DELIVERY) {
       return { deliveryFees: 0 };
@@ -269,9 +263,14 @@ export class OrderService {
       );
     }
 
+    const deliveryFees =
+      customDeliveryPrice !== undefined
+        ? customDeliveryPrice
+        : deliveryRegion.deliveryPrice;
+
     return {
       deliveryRegion,
-      deliveryFees: deliveryRegion.deliveryPrice,
+      deliveryFees,
     };
   }
 

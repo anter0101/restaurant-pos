@@ -23,6 +23,20 @@ export class Customer extends BaseEntity {
   address?: string;
 
   @Column({
+    name: 'secondary_address',
+    type: 'varchar',
+    nullable: true,
+  })
+  secondaryAddress?: string;
+
+  @Column({
+    name: 'third_address',
+    type: 'varchar',
+    nullable: true,
+  })
+  thirdAddress?: string;
+
+  @Column({
     name: 'customer_type',
     type: 'enum',
     enum: CustomerType,

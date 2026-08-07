@@ -56,44 +56,52 @@ export class ShiftManagementService {
     return result ?? undefined;
   }
 
-  async openShift(dto: UserDTO, creator?: string): Promise<ShiftManagement> {
-    const cashier = await this.userRepository.findOne({
-      where: { id:  dto.id},
+  async openShift( cashier: User,manager: User, creator?: string): Promise<ShiftManagement> {
+    const managerUser = await this.userRepository.findOne({
+      where: { id:  manager.id},
       relations: ['branch'],
     });
-    if (!cashier) {
-      throw new NotFoundException(`Cashier ${dto.id} not found`);
+    if (!managerUser) {
+      throw new NotFoundException(`Manager user ${manager.id} not found`);
     }
-    if (cashier.role !== UserRole.CASHIER) {
+    if (managerUser.role !== UserRole.MANAGER) {
       throw new BadRequestException(
-        `User ${dto.id} is not a cashier`,
+        `User ${manager.id} is not a manager`,
       );
     }
 
-    const branchId = dto.branch?.id;
-    if (!branchId) {
-      throw new BadRequestException(
-        `Cashier ${dto.id} is not assigned to a branch`,
-      );
-    }
-
-    const branch = await this.branchRepository.findOne({
-      where: { id: branchId },
+    const cashierUser = await this.userRepository.findOne({
+      where: { id:  cashier.id},
+      relations: ['branch'],
     });
-    if (!branch) {
-      throw new NotFoundException(`Branch ${branchId} not found`);
+    if (!cashierUser) {
+      throw new NotFoundException(`Cashier user ${cashier.id} not found`);
     }
+    if (cashierUser.role !== UserRole.CASHIER) {
+      throw new BadRequestException(
+        `User ${cashier.id} is not a cashier`,
+      );
+    } 
+
+    const branch = cashierUser.branch;
+    if (!branch) {
+      throw new BadRequestException(
+        `Cashier user ${cashier.id} is not assigned to a branch`,
+      );
+    }
+
+    
 
     const openShift = await this.shiftRepository.findOne({
       where: {
-        branch: { id: branchId },
-        cashier: { id: dto.id },
+        branch: { id: branch.id },
+        cashier: { id: cashierUser.id },
         status: ShiftStatus.OPEN,
       },
     });
     if (openShift) {
       throw new BadRequestException(
-        `Cashier ${dto.id} already has an open shift at branch ${branchId}`,
+        `Cashier ${cashierUser.id} already has an open shift at branch ${branch.id}`,
       );
     }
 
@@ -113,18 +121,44 @@ export class ShiftManagementService {
   }
 
   async endShift(
-    dto: UserDTO,
+    cashier: User,
+    manager: User,
   ): Promise<ShiftManagement> {
 
-    const shift = await this.shiftRepository.findOne({
+    const managerUser = await this.userRepository.findOne({
+      where: { id:  manager.id},
+      relations: ['branch'],
+    });
+    if (!managerUser) {
+      throw new NotFoundException(`Manager user ${manager.id} not found`);
+    }
+    if (managerUser.role !== UserRole.MANAGER) {
+      throw new BadRequestException(
+        `User ${manager.id} is not a manager`,
+      );
+    }
+
+    const cashierUser = await this.userRepository.findOne({
+      where: { id:  cashier.id},
+      relations: ['branch'],
+    });
+    if (!cashierUser) {
+      throw new NotFoundException(`Cashier user ${cashier.id} not found`);
+    }
+    if (cashierUser.role !== UserRole.CASHIER) {
+      throw new BadRequestException(
+        `User ${cashier.id} is not a cashier`,
+      );
+    }
+      const shift = await this.shiftRepository.findOne({
       where: {
-        branch: { id: dto.branch?.id },
-        cashier: { id: dto.id },
+        branch: { id: cashierUser.branch?.id },
+        cashier: { id: cashierUser.id },
         status: ShiftStatus.OPEN,
       },
     });
     if (!shift) {
-      throw new NotFoundException(`Shift not found`);
+      throw new NotFoundException(`Cashier ${cashierUser.id} does not have an open shift`);
     }
 
     shift.status = ShiftStatus.CLOSED;

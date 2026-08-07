@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Restaurant POS API",
-    "description": "Complete Restaurant POS collection — all `/api/v1` endpoints, Bearer auth, customers module, sample request bodies, saved response examples on every POST, and runnable E2E scenario folders. Orders use customerId (end-customer). Service fee applies to DINE_IN only.",
+    "description": "Restaurant POS API — Bearer auth, POS-style order validation (submitted totals must match server), saved POST examples, E2E scenarios. Service fee on DINE_IN only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -78,6 +78,22 @@
     {
       "key": "customerPhone",
       "value": "01012345678"
+    },
+    {
+      "key": "managerUsername",
+      "value": "manager1"
+    },
+    {
+      "key": "managerPassword",
+      "value": "123456"
+    },
+    {
+      "key": "cashierUsername",
+      "value": "cashier1"
+    },
+    {
+      "key": "cashierPassword",
+      "value": "123456"
     }
   ],
   "item": [
@@ -118,7 +134,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -144,7 +160,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -193,7 +209,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -207,7 +232,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -258,7 +292,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -281,7 +315,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -484,7 +518,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -492,7 +526,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -507,7 +541,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -515,7 +549,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -563,7 +597,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -589,7 +623,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -635,7 +669,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -649,7 +692,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -698,7 +750,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -721,7 +773,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -770,7 +822,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -793,7 +845,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -832,7 +884,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -846,7 +907,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                    "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -884,7 +954,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -898,7 +977,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -946,7 +1034,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -969,7 +1057,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1017,7 +1105,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1043,7 +1131,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1089,7 +1177,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -1103,7 +1200,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -1155,7 +1261,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1178,7 +1284,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1239,7 +1345,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1262,7 +1368,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1310,7 +1416,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1333,7 +1439,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1381,7 +1487,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1407,7 +1513,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1449,7 +1555,22 @@
               "request": {
                 "method": "POST",
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
               },
               "response": [
                 {
@@ -1457,7 +1578,22 @@
                   "originalRequest": {
                     "method": "POST",
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ]
                   },
                   "status": "Created",
                   "code": 201,
@@ -1511,7 +1647,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1534,7 +1670,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1569,7 +1705,22 @@
               "request": {
                 "method": "POST",
                 "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
               },
               "response": [
                 {
@@ -1577,7 +1728,22 @@
                   "originalRequest": {
                     "method": "POST",
                     "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                    "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ]
                   },
                   "status": "Created",
                   "code": 201,
@@ -1610,6 +1776,82 @@
                 "method": "GET",
                 "url": "{{baseUrl}}/api/v1/shift-managements/has-open-shift"
               }
+            },
+            {
+              "name": "Login as admin (for calculate)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Admin login required for calculate-orders-totals."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Admin login required for calculate-orders-totals."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
             },
             {
               "name": "7. Calculate orders totals",
@@ -1705,7 +1947,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1731,7 +1973,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1777,7 +2019,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -1791,7 +2042,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                    "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -1908,7 +2168,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1931,7 +2191,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -1972,7 +2232,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1980,7 +2240,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "response": [
                 {
@@ -1995,7 +2255,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -2003,7 +2263,7 @@
                       }
                     },
                     "url": "{{baseUrl}}/api/v1/orders",
-                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
                   },
                   "status": "Created",
                   "code": 201,
@@ -2062,7 +2322,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "response": [
                 {
@@ -2076,7 +2345,16 @@
                       }
                     ],
                     "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                    "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
                   },
                   "status": "Created",
                   "code": 201,
@@ -2089,6 +2367,82 @@
                   ],
                   "cookie": [],
                   "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Login as admin (for calculate)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Admin login required for calculate-orders-totals."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Admin login required for calculate-orders-totals."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
                 }
               ]
             },
@@ -2438,6 +2792,65 @@
                 },
                 "url": "{{baseUrl}}/api/v1/users",
                 "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 2,\n  \"name\": \"Cashier One\",\n  \"username\": \"cashier1\",\n  \"role\": \"CASHIER\",\n  \"isActive\": true,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create manager user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Branch Manager\",\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\",\n  \"role\": \"MANAGER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/users",
+            "description": "Creates a MANAGER user — credentials are used in shift open/end request bodies."
+          },
+          "response": [
+            {
+              "name": "201 Created — user",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Branch Manager\",\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\",\n  \"role\": \"MANAGER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/users",
+                "description": "Creates a MANAGER user — credentials are used in shift open/end request bodies."
               },
               "status": "Created",
               "code": 201,
@@ -3010,7 +3423,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
+              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3076,7 +3489,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"address\": \"شارع الجلاء - محدث\"\n}"
+              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
           }
@@ -3155,7 +3568,16 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/shift-managements/open",
-            "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+            "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": [
             {
@@ -3169,7 +3591,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/open",
-                "description": "Opens a shift for the logged-in cashier. Branch is resolved from the user token. Resets branch order queue counter."
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "status": "Created",
               "code": 201,
@@ -3223,7 +3654,16 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/shift-managements/end",
-            "description": "Closes the logged-in cashier open shift at their branch. No request body."
+            "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": [
             {
@@ -3237,7 +3677,16 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/shift-managements/end",
-                "description": "Closes the logged-in cashier open shift at their branch. No request body."
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               },
               "status": "Created",
               "code": 201,
@@ -3392,7 +3841,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {
@@ -3415,7 +3864,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "status": "Created",
               "code": 201,
@@ -3451,7 +3900,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {
@@ -3474,7 +3923,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "status": "Created",
               "code": 201,
@@ -3502,7 +3951,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3510,7 +3959,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
           },
           "response": [
             {
@@ -3525,7 +3974,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": false,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3533,7 +3982,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/orders",
-                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
               },
               "status": "Created",
               "code": 201,
@@ -3550,7 +3999,7 @@
           ]
         },
         {
-          "name": "Create order — delivery (update customer profile)",
+          "name": "Create order — delivery (custom delivery fee)",
           "request": {
             "method": "POST",
             "header": [
@@ -3561,7 +4010,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع النصر - عمارة جديدة\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": true,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 18\n}",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"customDeliveryPrice\": 10,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 10,\n  \"serviceFee\": 0,\n  \"totalAmount\": 35\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3569,44 +4018,8 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/orders",
-            "description": "DELIVERY with updateCustomerProfile: true — persists deliveryAddress and deliveryRegionId to the customer record for future orders."
-          },
-          "response": [
-            {
-              "name": "201 Created — delivery order",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع النصر - عمارة جديدة\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"updateCustomerProfile\": true,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 18\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": "{{baseUrl}}/api/v1/orders",
-                "description": "DELIVERY with updateCustomerProfile: true — persists deliveryAddress and deliveryRegionId to the customer record for future orders."
-              },
-              "status": "Created",
-              "code": 201,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 10,\n  \"orderType\": \"DELIVERY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 5.5,\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"serviceFee\": 0,\n  \"totalAmount\": 18,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
-            }
-          ]
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+          }
         },
         {
           "name": "Get order by id",

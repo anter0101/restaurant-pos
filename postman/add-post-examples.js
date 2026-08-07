@@ -157,6 +157,11 @@ function examplesForPost(url, req) {
   }
 
   if (u.includes('/shift-managements/open')) {
+    originalRequest.body = {
+      mode: 'raw',
+      raw: '{\n  "username": "{{managerUsername}}",\n  "password": "{{managerPassword}}"\n}',
+      options: { raw: { language: 'json' } },
+    };
     return [
       example('201 Created — shift opened', 'Created', 201, {
         id: 1,
@@ -172,6 +177,11 @@ function examplesForPost(url, req) {
   }
 
   if (u.includes('/shift-managements/end')) {
+    originalRequest.body = {
+      mode: 'raw',
+      raw: '{\n  "username": "{{managerUsername}}",\n  "password": "{{managerPassword}}"\n}',
+      options: { raw: { language: 'json' } },
+    };
     return [
       example('201 Created — shift closed', 'Created', 201, {
         id: 1,
