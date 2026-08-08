@@ -13,6 +13,8 @@ const allowedCustomerDtoKeys: ReadonlyArray<keyof CustomerDTO | keyof BaseDTO> =
   'phone',
   'alternativePhone',
   'address',
+  'secondaryAddress',
+  'thirdAddress',
   'customerType',
   'defaultDeliveryRegion',
   'createdAt',
@@ -66,6 +68,8 @@ export function mapCreateCustomerDtoToEntity(dto: CreateCustomerDTO): Customer {
   customer.phone = dto.phone.trim();
   customer.alternativePhone = dto.alternativePhone?.trim() || undefined;
   customer.address = dto.address?.trim() || undefined;
+  customer.secondaryAddress = dto.secondaryAddress?.trim() || undefined;
+  customer.thirdAddress = dto.thirdAddress?.trim() || undefined;
   customer.customerType = dto.customerType;
   if (dto.defaultDeliveryRegionId !== undefined) {
     const region = new DeliveryRegion();
@@ -88,6 +92,12 @@ export function mapUpdateCustomerDtoToEntity(
   }
   if (dto.address !== undefined) {
     partial.address = dto.address?.trim() || undefined;
+  }
+  if (dto.secondaryAddress !== undefined) {
+    partial.secondaryAddress = dto.secondaryAddress?.trim() || undefined;
+  }
+  if (dto.thirdAddress !== undefined) {
+    partial.thirdAddress = dto.thirdAddress?.trim() || undefined;
   }
   if (dto.customerType !== undefined) partial.customerType = dto.customerType;
   if (dto.defaultDeliveryRegionId !== undefined) {

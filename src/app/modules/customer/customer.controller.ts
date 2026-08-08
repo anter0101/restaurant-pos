@@ -103,7 +103,14 @@ export class CustomerController {
 
     const findOptions = buildSearchQuery<Customer>({
       query,
-      searchableColumns: ['name', 'phone', 'alternativePhone', 'address'],
+      searchableColumns: [
+        'name',
+        'phone',
+        'alternativePhone',
+        'address',
+        'secondaryAddress',
+        'thirdAddress',
+      ],
       where: Object.keys(where).length > 0 ? where : undefined,
       relations: ['defaultDeliveryRegion'],
     });

@@ -50,6 +50,26 @@ export class AuthService {
     });
   }
 
+  async validateCredentials(
+    username: string,
+    password: string,
+  ): Promise<User | undefined> {
+    const user = await this.userService.findByFields({
+      where: { username: Equal(username) },
+      relations: ['branch'],
+    });
+    if (!user || !user.isActive) {
+      return undefined;
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return undefined;
+    }
+
+    return user;
+  }
+
   generateToken(user: Pick<User, 'id' | 'username' | 'role' | 'branch'>): GeneratedToken {
     const payload: JwtPayload = {
       id: user.id,

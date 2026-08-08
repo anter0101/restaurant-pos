@@ -1,7 +1,6 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -53,6 +52,17 @@ export class CreateOrderDTO {
   @IsInt()
   @Min(1)
   deliveryRegionId?: number;
+  
+  @ApiProperty({
+    example: 10,
+    required: false,
+    description:
+      'Optional delivery fee override for DELIVERY orders. When omitted, uses the delivery region price.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  customDeliveryPrice?: number;
 
   @ApiProperty({
     example: 'شارع الجلاء عمارة 5',
@@ -65,16 +75,6 @@ export class CreateOrderDTO {
   deliveryAddress?: string;
 
   @ApiProperty({
-    example: false,
-    required: false,
-    description:
-      'When true, update customer address and default delivery region from this order',
-  })
-  @IsOptional()
-  @IsBoolean()
-  updateCustomerProfile?: boolean;
-
-  @ApiProperty({
     example: 37.5,
     description: 'Sum of line totals — must match server calculation',
   })
@@ -82,7 +82,11 @@ export class CreateOrderDTO {
   @Min(0)
   itemsSubtotal: number;
 
-  @ApiProperty({ example: 0, description: 'Delivery fee from region (0 unless DELIVERY)' })
+  @ApiProperty({
+    example: 0,
+    description:
+      'Delivery fee (0 unless DELIVERY). Must match customDeliveryPrice or region price.',
+  })
   @IsNumber()
   @Min(0)
   deliveryFees: number;

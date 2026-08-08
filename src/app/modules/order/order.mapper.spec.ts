@@ -57,17 +57,17 @@ describe('order.mapper', () => {
     ).toBe(40);
   });
 
-  it('resolveInitialOrderStatus returns pending unless branch uses stepped kitchen', () => {
+  it('resolveInitialOrderStatus returns prepared unless branch uses stepped kitchen', () => {
     expect(
       resolveInitialOrderStatus(
         Object.assign(new Branch(), { isSteppedKitchen: false }),
       ),
-    ).toBe(OrderStatus.PENDING);
+    ).toBe(OrderStatus.PREPARED);
     expect(
       resolveInitialOrderStatus(
         Object.assign(new Branch(), { isSteppedKitchen: true }),
       ),
-    ).toBe(OrderStatus.PREPARED);
+    ).toBe(OrderStatus.PENDING);
   });
 
   it('mapCreateOrderToEntity maps resolved context', () => {
@@ -104,12 +104,12 @@ describe('order.mapper', () => {
     });
 
     expect(order.orderQueue).toBe(3);
-    expect(order.status).toBe(OrderStatus.PENDING);
+    expect(order.status).toBe(OrderStatus.PREPARED);
     expect(order.shift.id).toBe(5);
     expect(order.items).toHaveLength(1);
   });
 
-  it('mapCreateOrderToEntity starts prepared for stepped-kitchen branches', () => {
+  it('mapCreateOrderToEntity starts pending for stepped-kitchen branches', () => {
     const branch = Object.assign(new Branch(), {
       id: 1,
       type: BranchType.DINE_IN,
@@ -141,7 +141,7 @@ describe('order.mapper', () => {
       orderItems,
     });
 
-    expect(order.status).toBe(OrderStatus.PREPARED);
+    expect(order.status).toBe(OrderStatus.PENDING);
   });
 
   it('mapOrderToOrderDtoSelective projects order fields', () => {

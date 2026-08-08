@@ -423,25 +423,6 @@ describe('OrderService', () => {
     ).rejects.toThrow(/deliveryRegionId is required/);
   });
 
-  it('rejects updateCustomerProfile without customerId', async () => {
-    await expect(
-      service.createOrder(
-        buildOrderDto({
-          orderType: OrderType.DELIVERY,
-          deliveryAddress: 'شارع الجلاء',
-          deliveryRegionId: 2,
-          updateCustomerProfile: true,
-          items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
-          itemsSubtotal: 20,
-          deliveryFees: 5,
-          serviceFee: 0,
-          totalAmount: 25,
-        }),
-        cashierUser,
-      ),
-    ).rejects.toThrow(/customerId is required when updateCustomerProfile/);
-  });
-
   it('snapshots deliveryFees for DELIVERY order type', async () => {
     mockTransaction({
       branch: {
@@ -481,6 +462,61 @@ describe('OrderService', () => {
     expect(result.deliveryAddress).toBe('North District St 12');
     expect(result.serviceFee).toBe(0);
     expect(result.totalAmount).toBe(45);
+  });
+
+  it('uses customDeliveryPrice when provided instead of region price', async () => {
+    mockTransaction({
+      branch: {
+        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
+        save: jest.fn(),
+      },
+      deliveryRegion: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 2,
+          deliveryPrice: 5,
+          regionName: 'North',
+        }),
+      },
+      menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
+      relMenuBranch: { find: jest.fn().mockResolvedValue([]) },
+      order: {
+        save: jest.fn().mockImplementation(async (order) => order),
+      },
+    });
+
+    const result = await service.createOrder(
+      buildOrderDto({
+        orderType: OrderType.DELIVERY,
+        deliveryRegionId: 2,
+        deliveryAddress: 'Custom fee address',
+        customDeliveryPrice: 10,
+        items: [{ menuItemId: 10, quantity: 2, unitPrice: 20 }],
+        itemsSubtotal: 40,
+        deliveryFees: 10,
+        serviceFee: 0,
+        totalAmount: 50,
+      }),
+      cashierUser,
+    );
+
+    expect(result.deliveryFees).toBe(10);
+    expect(result.totalAmount).toBe(50);
+  });
+
+  it('rejects customDeliveryPrice on non-DELIVERY orders', async () => {
+    await expect(
+      service.createOrder(
+        buildOrderDto({
+          orderType: OrderType.DINE_IN,
+          customDeliveryPrice: 10,
+          items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
+          itemsSubtotal: 20,
+          serviceFee: 2,
+          totalAmount: 22,
+        }),
+        cashierUser,
+      ),
+    ).rejects.toThrow(/customDeliveryPrice is only allowed/);
   });
 
   it('does not apply service fee for TAKEAWAY orders', async () => {
@@ -600,111 +636,5 @@ describe('OrderService', () => {
     );
 
     expect(result.deliveryAddress).toBe('New temporary address');
-  });
-
-  it('updates customer profile when updateCustomerProfile is true', async () => {
-    const customer = {
-      id: 7,
-      name: 'customer',
-      address: 'Old address',
-      defaultDeliveryRegion: { id: 3, deliveryPrice: 8 },
-    };
-    const customerSave = jest.fn().mockResolvedValue(customer);
-    const deliveryRegion = {
-      id: 5,
-      deliveryPrice: 6,
-      regionName: 'West',
-    };
-
-    mockTransaction({
-      branch: {
-        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
-        save: jest.fn(),
-      },
-      customer: {
-        findOne: jest.fn().mockResolvedValue(customer),
-        save: customerSave,
-      },
-      deliveryRegion: {
-        findOne: jest.fn().mockResolvedValue(deliveryRegion),
-      },
-      menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
-      relMenuBranch: { find: jest.fn().mockResolvedValue([]) },
-      order: {
-        save: jest.fn().mockImplementation(async (order) => order),
-      },
-    });
-
-    await service.createOrder(
-      buildOrderDto({
-        orderType: OrderType.DELIVERY,
-        customerId: 7,
-        deliveryAddress: 'Updated home address',
-        deliveryRegionId: 5,
-        updateCustomerProfile: true,
-        items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
-        itemsSubtotal: 20,
-        deliveryFees: 6,
-        serviceFee: 0,
-        totalAmount: 26,
-      }),
-      cashierUser,
-    );
-
-    expect(customerSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        address: 'Updated home address',
-        defaultDeliveryRegion: deliveryRegion,
-      }),
-    );
-  });
-
-  it('does not update customer profile when updateCustomerProfile is false', async () => {
-    const customerSave = jest.fn();
-
-    mockTransaction({
-      branch: {
-        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
-        save: jest.fn(),
-      },
-      customer: {
-        findOne: jest.fn().mockResolvedValue({
-          id: 7,
-          name: 'customer',
-          address: 'شارع الجلاء',
-          defaultDeliveryRegion: { id: 3, deliveryPrice: 8 },
-        }),
-        save: customerSave,
-      },
-      deliveryRegion: {
-        findOne: jest.fn().mockResolvedValue({
-          id: 3,
-          deliveryPrice: 8,
-          regionName: 'Downtown',
-        }),
-      },
-      menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
-      relMenuBranch: { find: jest.fn().mockResolvedValue([]) },
-      order: {
-        save: jest.fn().mockImplementation(async (order) => order),
-      },
-    });
-
-    await service.createOrder(
-      buildOrderDto({
-        orderType: OrderType.DELIVERY,
-        customerId: 7,
-        deliveryAddress: 'One-off address',
-        updateCustomerProfile: false,
-        items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
-        itemsSubtotal: 20,
-        deliveryFees: 8,
-        serviceFee: 0,
-        totalAmount: 28,
-      }),
-      cashierUser,
-    );
-
-    expect(customerSave).not.toHaveBeenCalled();
   });
 });

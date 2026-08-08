@@ -43,24 +43,23 @@ const ORDER_BODIES = {
     customerId: '{{customerId}}',
     deliveryAddress: 'شارع الجلاء عمارة 5',
     deliveryRegionId: '{{deliveryRegionId}}',
-    updateCustomerProfile: false,
     items: [{ menuItemId: '{{menuItemId}}', quantity: 2, unitPrice: 12.5 }],
     itemsSubtotal: 25,
     deliveryFees: 5.5,
     serviceFee: 0,
     totalAmount: 30.5,
   },
-  DELIVERY_SAVE_PROFILE: {
+  DELIVERY_CUSTOM_FEE: {
     orderType: 'DELIVERY',
     customerId: '{{customerId}}',
-    deliveryAddress: 'شارع النصر - عمارة جديدة',
+    deliveryAddress: 'شارع الجلاء عمارة 5',
     deliveryRegionId: '{{deliveryRegionId}}',
-    updateCustomerProfile: true,
-    items: [{ menuItemId: '{{menuItemId}}', quantity: 1, unitPrice: 12.5 }],
-    itemsSubtotal: 12.5,
-    deliveryFees: 5.5,
+    customDeliveryPrice: 10,
+    items: [{ menuItemId: '{{menuItemId}}', quantity: 2, unitPrice: 12.5 }],
+    itemsSubtotal: 25,
+    deliveryFees: 10,
     serviceFee: 0,
-    totalAmount: 18,
+    totalAmount: 35,
   },
 };
 
@@ -70,10 +69,24 @@ function toRaw(obj) {
 
 function patchOrderBody(raw) {
   if (!raw || !raw.includes('"orderType"')) return raw;
+  if (raw.includes('"DELIVERY"') && raw.includes('customDeliveryPrice')) {
+    return toRaw(ORDER_BODIES.DELIVERY_CUSTOM_FEE);
+  }
   if (raw.includes('"DELIVERY"')) return toRaw(ORDER_BODIES.DELIVERY_2);
   if (raw.includes('"TAKEAWAY"')) return toRaw(ORDER_BODIES.TAKEAWAY_1);
   if (raw.includes('"customerId"')) return toRaw(ORDER_BODIES.DINE_IN_MULTI);
   return toRaw(ORDER_BODIES.DINE_IN_2);
+}
+
+function stripUpdateCustomerProfile(raw) {
+  if (!raw || !raw.includes('updateCustomerProfile')) return raw;
+  try {
+    const obj = JSON.parse(raw);
+    delete obj.updateCustomerProfile;
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return raw.replace(/,?\s*"updateCustomerProfile":\s*(true|false)\s*,?/g, '');
+  }
 }
 
 function patchDeliveryResponseBody(bodyStr) {
@@ -98,16 +111,18 @@ function walk(items) {
     }
     const req = item.request;
     if (req?.method === 'POST' && String(req.url).includes('/orders')) {
-      req.body.raw = patchOrderBody(req.body.raw);
+      req.body.raw = stripUpdateCustomerProfile(patchOrderBody(req.body.raw));
       req.body.options = { raw: { language: 'json' } };
       req.description =
-        'POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress + deliveryRegionId (default from customer); updateCustomerProfile saves address/zone to customer. Server recalculates and rejects mismatches. Branch + shift from JWT.';
+        'POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT.';
     }
 
     if (item.response) {
       for (const ex of item.response) {
         if (ex.originalRequest?.body?.raw) {
-          ex.originalRequest.body.raw = patchOrderBody(ex.originalRequest.body.raw);
+          ex.originalRequest.body.raw = stripUpdateCustomerProfile(
+            patchOrderBody(ex.originalRequest.body.raw),
+          );
           ex.originalRequest.body.options = { raw: { language: 'json' } };
         }
         if (ex.body) {
@@ -121,28 +136,74 @@ function walk(items) {
 walk(collection.item);
 
 const ordersFolder = collection.item.find((i) => i.name === 'orders');
-if (
-  ordersFolder &&
-  !ordersFolder.item.some((i) => i.name?.includes('update customer profile'))
-) {
+if (ordersFolder) {
+  ordersFolder.item = ordersFolder.item.filter(
+    (i) => !i.name?.includes('update customer profile'),
+  );
+
   const deliveryIdx = ordersFolder.item.findIndex((i) =>
     i.name?.includes('with delivery'),
   );
-  ordersFolder.item.splice(deliveryIdx + 1, 0, {
-    name: 'Create order — delivery (update customer profile)',
-    request: {
-      method: 'POST',
-      header: [{ key: 'Content-Type', value: 'application/json' }],
-      body: {
-        mode: 'raw',
-        raw: toRaw(ORDER_BODIES.DELIVERY_SAVE_PROFILE),
-        options: { raw: { language: 'json' } },
+
+  if (
+    deliveryIdx >= 0 &&
+    !ordersFolder.item.some((i) => i.name?.includes('custom delivery fee'))
+  ) {
+    ordersFolder.item.splice(deliveryIdx + 1, 0, {
+      name: 'Create order — delivery (custom delivery fee)',
+      request: {
+        method: 'POST',
+        header: [{ key: 'Content-Type', value: 'application/json' }],
+        body: {
+          mode: 'raw',
+          raw: toRaw(ORDER_BODIES.DELIVERY_CUSTOM_FEE),
+          options: { raw: { language: 'json' } },
+        },
+        url: '{{baseUrl}}/api/v1/orders',
+        description:
+          'DELIVERY with customDeliveryPrice — overrides region deliveryPrice; deliveryFees must match customDeliveryPrice.',
       },
-      url: '{{baseUrl}}/api/v1/orders',
-      description:
-        'DELIVERY with updateCustomerProfile: true — persists deliveryAddress and deliveryRegionId to the customer record for future orders.',
-    },
-  });
+    });
+  }
+}
+
+const customersFolder = collection.item.find((i) => i.name === 'customers');
+if (customersFolder) {
+  for (const item of customersFolder.item) {
+    const req = item.request;
+    if (req?.method === 'POST' && String(req.url).includes('/customers')) {
+      if (req.body?.raw && !req.body.raw.includes('secondaryAddress')) {
+        req.body.raw = req.body.raw.replace(
+          '"address": "شارع الجلاء",',
+          '"address": "شارع الجلاء",\n  "secondaryAddress": "شارع النصر",\n  "thirdAddress": "شارع المعادي",',
+        );
+      }
+    }
+    if (req?.method === 'PUT' && String(req.url).includes('/customers')) {
+      if (req.body?.raw && !req.body.raw.includes('secondaryAddress')) {
+        req.body.raw =
+          '{\n  "name": "محمد أحمد",\n  "address": "شارع الجلاء",\n  "secondaryAddress": "شارع النصر",\n  "thirdAddress": "شارع المعادي"\n}';
+      }
+    }
+  }
+}
+
+fixDescriptions(collection.item);
+
+function fixDescriptions(items) {
+  const newDesc =
+    'POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT.';
+  for (const item of items) {
+    if (item.item) fixDescriptions(item.item);
+    if (item.request?.description?.includes('updateCustomerProfile')) {
+      item.request.description = newDesc;
+    }
+    for (const res of item.response || []) {
+      if (res.originalRequest?.description?.includes('updateCustomerProfile')) {
+        res.originalRequest.description = newDesc;
+      }
+    }
+  }
 }
 
 collection.info.description =

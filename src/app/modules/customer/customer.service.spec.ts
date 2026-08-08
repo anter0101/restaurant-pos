@@ -68,9 +68,14 @@ describe('CustomerService', () => {
         phone: '01012345678',
         customerType: CustomerType.NORMAL,
         address: 'شارع الجلاء',
+        secondaryAddress: 'شارع النصر',
+        thirdAddress: 'شارع المعادي',
       },
       'admin',
     );
+
+    expect(result.secondaryAddress).toBe('شارع النصر');
+    expect(result.thirdAddress).toBe('شارع المعادي');
 
     expect(result.name).toBe('محمد');
     expect(result.phone).toBe('01012345678');
