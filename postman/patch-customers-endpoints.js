@@ -75,15 +75,14 @@ const customersFolder = {
             '  "name": "محمد",',
             '  "phone": "01012345678",',
             '  "address": "شارع الجلاء",',
-            '  "customerType": "NORMAL",',
-            '  "defaultDeliveryRegionId": {{deliveryRegionId}}',
+            '  "customerType": "NORMAL"',
             '}',
           ].join('\n'),
           options: { raw: { language: 'json' } },
         },
         url: '{{baseUrl}}/api/v1/customers',
         description:
-          'Creates an end-customer record. address + defaultDeliveryRegionId prefill DELIVERY orders; both can be overridden per order.',
+          'Creates an end-customer record. deliveryAddress on orders defaults to customer.address when omitted.',
       },
     },
     {

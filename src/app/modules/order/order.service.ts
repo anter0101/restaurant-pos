@@ -58,7 +58,6 @@ export class OrderService {
         'deliveryRegion',
         'shift',
         'customer',
-        'customer.defaultDeliveryRegion',
       ],
     });
     return result ?? undefined;
@@ -140,10 +139,11 @@ export class OrderService {
 
       const customer = await this.resolveCustomer(manager, dto.customerId);
 
-      const effectiveDeliveryAddress =
-        dto.deliveryAddress?.trim() || customer?.address?.trim() || undefined;
-      const effectiveDeliveryRegionId =
-        dto.deliveryRegionId ?? customer?.defaultDeliveryRegion?.id;
+      const effectiveDeliveryAddress = dto.deliveryAddress?.trim()
+      const effectiveDeliveryRegionId = dto.deliveryRegionId
+
+
+
 
       if (dto.orderType === OrderType.DELIVERY && !effectiveDeliveryAddress) {
         throw new BadRequestException(
@@ -151,18 +151,25 @@ export class OrderService {
         );
       }
 
-      assertDeliveryRegionMatchesOrderType(
-        dto.orderType,
-        effectiveDeliveryRegionId,
-      );
+      if(!dto.customDeliveryPrice) {
+        assertDeliveryRegionMatchesOrderType(
+          dto.orderType,
+          effectiveDeliveryRegionId,
+        );
+      }
+
+     
 
       const { deliveryRegion, deliveryFees } =
-        await this.resolveDeliveryRegion(
+        await this.resolveDeliveryprice(
           manager,
           dto.orderType,
           effectiveDeliveryRegionId,
           dto.customDeliveryPrice,
         );
+      
+
+        
       const { menuItemById, priceByMenuItemId } = await this.loadMenuPricing(
         manager,
         dto,
@@ -234,7 +241,6 @@ export class OrderService {
     const customer =
       (await manager.getRepository(Customer).findOne({
         where: { id: customerId },
-        relations: ['defaultDeliveryRegion'],
       })) ?? undefined;
     if (!customer) {
       throw new NotFoundException(`Customer ${customerId} not found`);
@@ -243,7 +249,7 @@ export class OrderService {
     return customer;
   }
 
-  private async resolveDeliveryRegion(
+  private async resolveDeliveryprice(
     manager: EntityManager,
     orderType: OrderType,
     deliveryRegionId?: number,
@@ -257,16 +263,16 @@ export class OrderService {
       (await manager.getRepository(DeliveryRegion).findOne({
         where: { id: deliveryRegionId },
       })) ?? undefined;
-    if (!deliveryRegion) {
+    if (!deliveryRegion && !customDeliveryPrice) {
       throw new NotFoundException(
         `Delivery region ${deliveryRegionId} not found`,
       );
     }
-
+ 
     const deliveryFees =
       customDeliveryPrice !== undefined
         ? customDeliveryPrice
-        : deliveryRegion.deliveryPrice;
+        : deliveryRegion?.deliveryPrice ?? 0;
 
     return {
       deliveryRegion,
