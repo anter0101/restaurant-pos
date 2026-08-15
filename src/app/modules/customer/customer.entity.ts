@@ -1,7 +1,6 @@
-﻿import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+﻿import { Entity, Column, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/core/utils/base.entity';
 import { CustomerType } from 'src/core/enums/customer-type';
-import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
 import { Order } from '../order/order.entity';
 
 @Entity('customers')
@@ -44,10 +43,6 @@ export class Customer extends BaseEntity {
     default: CustomerType.NORMAL,
   })
   customerType: CustomerType;
-
-  @ManyToOne(() => DeliveryRegion, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'default_delivery_region_id' })
-  defaultDeliveryRegion?: DeliveryRegion;
 
   @OneToMany(() => Order, (order) => order.customer)
   orders: Order[];

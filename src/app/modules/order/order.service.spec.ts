@@ -399,7 +399,7 @@ describe('OrderService', () => {
     ).rejects.toThrow(/deliveryAddress is required/);
   });
 
-  it('requires deliveryRegionId for DELIVERY order type without customer default', async () => {
+  it('requires deliveryRegionId for DELIVERY order type', async () => {
     mockTransaction({
       branch: {
         findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
@@ -547,52 +547,6 @@ describe('OrderService', () => {
     expect(result.totalAmount).toBe(40);
   });
 
-  it('uses customer default delivery region when deliveryRegionId is omitted', async () => {
-    mockTransaction({
-      branch: {
-        findOne: jest.fn().mockResolvedValue({ ...branchEntity, servicePercentage: 0 }),
-        save: jest.fn(),
-      },
-      customer: {
-        findOne: jest.fn().mockResolvedValue({
-          id: 7,
-          name: 'customer',
-          address: 'شارع الجلاء',
-          defaultDeliveryRegion: { id: 3, deliveryPrice: 8 },
-        }),
-      },
-      deliveryRegion: {
-        findOne: jest.fn().mockResolvedValue({
-          id: 3,
-          deliveryPrice: 8,
-          regionName: 'Downtown',
-        }),
-      },
-      menuItem: { find: jest.fn().mockResolvedValue([menuItem]) },
-      relMenuBranch: { find: jest.fn().mockResolvedValue([]) },
-      order: {
-        save: jest.fn().mockImplementation(async (order) => order),
-      },
-    });
-
-    const result = await service.createOrder(
-      buildOrderDto({
-        orderType: OrderType.DELIVERY,
-        customerId: 7,
-        items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
-        itemsSubtotal: 20,
-        deliveryFees: 8,
-        serviceFee: 0,
-        totalAmount: 28,
-      }),
-      cashierUser,
-    );
-
-    expect(result.deliveryFees).toBe(8);
-    expect(result.deliveryAddress).toBe('شارع الجلاء');
-    expect(result.customer?.id).toBe(7);
-  });
-
   it('uses explicit deliveryAddress override on order', async () => {
     mockTransaction({
       branch: {
@@ -604,7 +558,6 @@ describe('OrderService', () => {
           id: 7,
           name: 'customer',
           address: 'Old address',
-          defaultDeliveryRegion: { id: 3, deliveryPrice: 8 },
         }),
       },
       deliveryRegion: {
@@ -625,6 +578,7 @@ describe('OrderService', () => {
       buildOrderDto({
         orderType: OrderType.DELIVERY,
         customerId: 7,
+        deliveryRegionId: 3,
         deliveryAddress: 'New temporary address',
         items: [{ menuItemId: 10, quantity: 1, unitPrice: 20 }],
         itemsSubtotal: 20,

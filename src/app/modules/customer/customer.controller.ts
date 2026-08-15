@@ -35,8 +35,7 @@ import { CustomerQueryDTO } from './dtos/customer-query.dto';
 import { Customer } from './customer.entity';
 import { User } from '../user/user.entity';
 import { mapCustomerToCustomerDtoSelective } from './customer.mapper';
-import { FindOptionsWhere, Like } from 'typeorm';
-import { DeliveryRegionService } from '../delivery-region/delivery-region.service';
+import { FindOptionsWhere } from 'typeorm';
 
 @Controller('customers')
 @ApiBearerAuth()
@@ -51,26 +50,7 @@ import { DeliveryRegionService } from '../delivery-region/delivery-region.servic
 export class CustomerController {
   logger = new Logger('CustomerController');
 
-  constructor(
-    private readonly customerService: CustomerService,
-    private readonly deliveryRegionService: DeliveryRegionService,
-  ) {}
-
-  private async ensureDefaultRegionExists(
-    defaultDeliveryRegionId?: number,
-  ): Promise<void> {
-    if (defaultDeliveryRegionId === undefined) {
-      return;
-    }
-    const region = await this.deliveryRegionService.findById(
-      defaultDeliveryRegionId,
-    );
-    if (!region) {
-      throw new NotFoundException(
-        `Delivery region ${defaultDeliveryRegionId} not found`,
-      );
-    }
-  }
+  constructor(private readonly customerService: CustomerService) {}
 
   private async ensurePhoneIsUnique(
     phone: string,
@@ -100,7 +80,6 @@ export class CustomerController {
       where.customerType = query.customerType;
     }
 
-
     const findOptions = buildSearchQuery<Customer>({
       query,
       searchableColumns: [
@@ -112,7 +91,6 @@ export class CustomerController {
         'thirdAddress',
       ],
       where: Object.keys(where).length > 0 ? where : undefined,
-      relations: ['defaultDeliveryRegion'],
     });
 
     const [results, count] = await this.customerService.findAndCount(findOptions);
@@ -154,7 +132,6 @@ export class CustomerController {
     @AuthUser() user: User,
   ): Promise<Customer> {
     await this.ensurePhoneIsUnique(dto.phone);
-    await this.ensureDefaultRegionExists(dto.defaultDeliveryRegionId);
     return this.customerService.save(dto, user?.username);
   }
 
@@ -174,7 +151,6 @@ export class CustomerController {
     if (dto.phone !== undefined && dto.phone !== existing.phone) {
       await this.ensurePhoneIsUnique(dto.phone, id);
     }
-    await this.ensureDefaultRegionExists(dto.defaultDeliveryRegionId);
     dto.id = id;
     return this.customerService.update(dto, user?.username);
   }

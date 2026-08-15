@@ -4,8 +4,6 @@ import { CustomerDTO } from './dtos/customer.dto';
 import { CreateCustomerDTO } from './dtos/create-customer.dto';
 import { UpdateCustomerDTO } from './dtos/update-customer.dto';
 import { BaseDTO } from 'src/core/utils/base.dto';
-import { DeliveryRegion } from '../delivery-region/delivery-region.entity';
-import { mapDeliveryRegionToDeliveryRegionDtoSelective } from '../delivery-region/delivery-region.mapper';
 
 const allowedCustomerDtoKeys: ReadonlyArray<keyof CustomerDTO | keyof BaseDTO> = [
   'id',
@@ -16,7 +14,6 @@ const allowedCustomerDtoKeys: ReadonlyArray<keyof CustomerDTO | keyof BaseDTO> =
   'secondaryAddress',
   'thirdAddress',
   'customerType',
-  'defaultDeliveryRegion',
   'createdAt',
   'updatedAt',
   'createdBy',
@@ -47,11 +44,6 @@ export function mapCustomerToCustomerDtoSelective(
       if (key in customer && customer[key as keyof Customer] !== undefined) {
         (dto as any)[key] = customer[key as keyof Customer];
       }
-      if (key === 'defaultDeliveryRegion' && customer.defaultDeliveryRegion) {
-        (dto as any)[key] = mapDeliveryRegionToDeliveryRegionDtoSelective(
-          customer.defaultDeliveryRegion,
-        );
-      }
     });
 
     return dto;
@@ -71,11 +63,6 @@ export function mapCreateCustomerDtoToEntity(dto: CreateCustomerDTO): Customer {
   customer.secondaryAddress = dto.secondaryAddress?.trim() || undefined;
   customer.thirdAddress = dto.thirdAddress?.trim() || undefined;
   customer.customerType = dto.customerType;
-  if (dto.defaultDeliveryRegionId !== undefined) {
-    const region = new DeliveryRegion();
-    region.id = dto.defaultDeliveryRegionId;
-    customer.defaultDeliveryRegion = region;
-  }
   return customer;
 }
 
@@ -100,11 +87,6 @@ export function mapUpdateCustomerDtoToEntity(
     partial.thirdAddress = dto.thirdAddress?.trim() || undefined;
   }
   if (dto.customerType !== undefined) partial.customerType = dto.customerType;
-  if (dto.defaultDeliveryRegionId !== undefined) {
-    const region = new DeliveryRegion();
-    region.id = dto.defaultDeliveryRegionId;
-    partial.defaultDeliveryRegion = region;
-  }
   if (dto.updatedBy !== undefined) partial.updatedBy = dto.updatedBy;
 
   return partial;

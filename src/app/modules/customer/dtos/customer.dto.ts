@@ -1,16 +1,12 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Min,
 } from 'class-validator';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { CustomerType } from 'src/core/enums/customer-type';
-import { DeliveryRegionDTO } from '../../delivery-region/dtos/delivery-region.dto';
 
 export class CustomerDTO extends BaseDTO {
   @ApiProperty({ example: 'محمد' })
@@ -46,16 +42,4 @@ export class CustomerDTO extends BaseDTO {
   @ApiProperty({ enum: CustomerType })
   @IsEnum(CustomerType)
   customerType: CustomerType;
-
-  @ApiProperty({ type: Number, required: false })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  defaultDeliveryRegionId?: number;
-
-  @ApiProperty({ type: DeliveryRegionDTO, required: false })
-  @IsOptional()
-  @Type(() => DeliveryRegionDTO)
-  defaultDeliveryRegion?: Partial<DeliveryRegionDTO>;
 }

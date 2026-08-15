@@ -3423,7 +3423,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
+              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\",\n  \"customerType\": \"NORMAL\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3431,7 +3431,7 @@
               }
             },
             "url": "{{baseUrl}}/api/v1/customers",
-            "description": "Creates an end-customer record. defaultDeliveryRegionId is optional — when set, DELIVERY orders can omit deliveryRegionId."
+            "description": "Creates an end-customer record. deliveryAddress on DELIVERY orders defaults to customer.address when omitted."
           },
           "response": [
             {
@@ -3446,7 +3446,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegionId\": {{deliveryRegionId}}\n}",
+                  "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3454,7 +3454,7 @@
                   }
                 },
                 "url": "{{baseUrl}}/api/v1/customers",
-                "description": "Creates an end-customer record. defaultDeliveryRegionId is optional — when set, DELIVERY orders can omit deliveryRegionId."
+                "description": "Creates an end-customer record. deliveryAddress on DELIVERY orders defaults to customer.address when omitted."
               },
               "status": "Created",
               "code": 201,
@@ -3466,7 +3466,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"id\": 1,\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"defaultDeliveryRegion\": {\n    \"id\": 1,\n    \"regionName\": \"Downtown\",\n    \"deliveryPrice\": 5.5\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+              "body": "{\n  \"id\": 1,\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
             }
           ]
         },

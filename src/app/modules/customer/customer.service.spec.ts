@@ -36,14 +36,13 @@ describe('CustomerService', () => {
     service = module.get(CustomerService);
   });
 
-  it('findById loads defaultDeliveryRegion relation', async () => {
+  it('findById loads customer by id', async () => {
     repository.findOne.mockResolvedValue({ id: 1, name: 'Test' });
 
     await service.findById(1);
 
     expect(repository.findOne).toHaveBeenCalledWith({
       where: { id: 1 },
-      relations: ['defaultDeliveryRegion'],
     });
   });
 
@@ -55,7 +54,6 @@ describe('CustomerService', () => {
     expect(result?.phone).toBe('01012345678');
     expect(repository.findOne).toHaveBeenCalledWith({
       where: { phone: '01012345678' },
-      relations: ['defaultDeliveryRegion'],
     });
   });
 

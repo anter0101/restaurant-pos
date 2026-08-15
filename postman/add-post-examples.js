@@ -145,11 +145,6 @@ function examplesForPost(url, req) {
         phone: '01012345678',
         address: 'شارع الجلاء',
         customerType: 'NORMAL',
-        defaultDeliveryRegion: {
-          id: 1,
-          regionName: 'Downtown',
-          deliveryPrice: 5.5,
-        },
         createdAt: '2026-06-16T10:00:00.000Z',
         updatedAt: '2026-06-16T10:00:00.000Z',
       }, originalRequest),

@@ -19,7 +19,6 @@ export class CustomerService {
   async findById(id: number): Promise<Customer | undefined> {
     const result = await this.customerRepository.findOne({
       where: { id },
-      relations: ['defaultDeliveryRegion'],
     });
     return result ?? undefined;
   }
@@ -27,7 +26,6 @@ export class CustomerService {
   async findByPhone(phone: string): Promise<Customer | undefined> {
     const result = await this.customerRepository.findOne({
       where: { phone },
-      relations: ['defaultDeliveryRegion'],
     });
     return result ?? undefined;
   }
