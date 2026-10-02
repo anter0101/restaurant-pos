@@ -6,7 +6,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, Repository } from 'typeorm';
 import { ShiftManagement } from './shift-management.entity';
-import { EndShiftDTO, OpenShiftDTO } from './dtos/shift-management.dto';
 import { ShiftStatus } from 'src/core/enums/shift-status';
 import { OrderStatus } from 'src/core/enums/order-status';
 import { UserRole } from 'src/core/enums/user-role';
@@ -16,6 +15,7 @@ import { Order } from '../order/order.entity';
 import { resetOrderQueueCounter } from 'src/core/utils/order-queue.util';
 import { roundMoney } from 'src/core/utils/order-totals.util';
 import { UserDTO } from '../user/dtos/user.dto';
+import { assertShiftBranchAccess } from 'src/core/utils/branch-scope';
 @Injectable()
 export class ShiftManagementService {
   constructor(
@@ -166,6 +166,36 @@ export class ShiftManagementService {
     return this.shiftRepository.save(shift);
   }
 
+  async closeShiftById(
+    id: number,
+    actor: User,
+    endMoney?: number,
+  ): Promise<ShiftManagement> {
+    return this.shiftRepository.manager.transaction(async (manager) => {
+      const shiftRepo = manager.getRepository(ShiftManagement);
+      const shift = await shiftRepo.findOne({
+        where: { id },
+        relations: ['branch', 'cashier'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!shift) {
+        throw new NotFoundException(`Shift with id ${id} not found`);
+      }
+      assertShiftBranchAccess(actor, shift.branch?.id);
+      if (shift.status !== ShiftStatus.OPEN) {
+        throw new BadRequestException('Only OPEN shifts can be closed');
+      }
+
+      shift.status = ShiftStatus.CLOSED;
+      shift.endShift = new Date();
+      if (endMoney !== undefined) {
+        shift.endMoney = endMoney;
+      }
+      shift.updatedBy = actor.username;
+      return shiftRepo.save(shift);
+    });
+  }
+
   async hasOpenShift(dto: UserDTO): Promise<boolean> {
     const shift = await this.shiftRepository.findOne({
       where: {
@@ -181,7 +211,10 @@ export class ShiftManagementService {
    * Admin-only: sums prepared order totals into actualEndMoney, marks the shift calculated,
    * and batch-updates linked prepared orders to SHIFT_CALCULATED inside one transaction.
    */
-  async calculateOrdersTotals(id: number, creator?: string): Promise<number> {
+  async calculateOrdersTotals(
+    id: number,
+    creator?: string,
+  ): Promise<ShiftManagement> {
     return this.shiftRepository.manager.transaction(async (manager) => {
       const shiftRepo = manager.getRepository(ShiftManagement);
       const orderRepo = manager.getRepository(Order);
@@ -230,7 +263,14 @@ export class ShiftManagementService {
       shift.updatedBy = creator;
       await shiftRepo.save(shift);
 
-      return actualEndMoney;
+      const reloaded = await shiftRepo.findOne({
+        where: { id },
+        relations: ['branch', 'cashier'],
+      });
+      if (!reloaded) {
+        throw new NotFoundException('Shift not found');
+      }
+      return reloaded;
     });
   }
 }

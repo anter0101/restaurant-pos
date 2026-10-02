@@ -13,6 +13,8 @@ describe('ShiftManagementController', () => {
     endShift: jest.Mock;
     findById: jest.Mock;
     findAndCount: jest.Mock;
+    closeShiftById: jest.Mock;
+    calculateOrdersTotals: jest.Mock;
   };
   let authService: { validateCredentials: jest.Mock };
 
@@ -22,6 +24,8 @@ describe('ShiftManagementController', () => {
       endShift: jest.fn(),
       findById: jest.fn(),
       findAndCount: jest.fn(),
+      closeShiftById: jest.fn(),
+      calculateOrdersTotals: jest.fn(),
     };
     authService = { validateCredentials: jest.fn() };
 
@@ -106,8 +110,70 @@ describe('ShiftManagementController', () => {
   it('getById throws when shift missing', async () => {
     shiftService.findById.mockResolvedValue(undefined);
 
-    await expect(controller.getById(404)).rejects.toBeInstanceOf(
-      NotFoundException,
+    await expect(
+      controller.getById(404, { id: 1, role: UserRole.ADMIN } as any),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('getById hides other-branch shifts from manager', async () => {
+    shiftService.findById.mockResolvedValue({
+      id: 3,
+      branch: { id: 9 },
+      cashier: { id: 2 },
+    });
+
+    await expect(
+      controller.getById(3, {
+        id: 5,
+        role: UserRole.MANAGER,
+        branch: { id: 1 },
+      } as any),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('closeShift delegates to service', async () => {
+    const closed = {
+      id: 1,
+      status: ShiftStatus.CLOSED,
+      branch: { id: 1 },
+      cashier: { id: 2, name: 'C' },
+    };
+    shiftService.closeShiftById.mockResolvedValue(closed);
+    const manager = {
+      id: 5,
+      role: UserRole.MANAGER,
+      branch: { id: 1 },
+      username: 'manager1',
+    };
+
+    const result = await controller.closeShift(
+      1,
+      { endMoney: 100 },
+      manager as any,
     );
+
+    expect(shiftService.closeShiftById).toHaveBeenCalledWith(1, manager, 100);
+    expect(result.status).toBe(ShiftStatus.CLOSED);
+  });
+
+  it('calculateOrdersTotals returns mapped shift DTO', async () => {
+    shiftService.calculateOrdersTotals.mockResolvedValue({
+      id: 1,
+      status: ShiftStatus.CALCULATED,
+      actualEndMoney: 350.5,
+      totalOrders: 2,
+      branch: { id: 1, name: 'Main' },
+      cashier: { id: 2, name: 'C' },
+    });
+
+    const result = await controller.calculateOrdersTotals(1, {
+      id: 1,
+      role: UserRole.ADMIN,
+      username: 'admin',
+    } as any);
+
+    expect(shiftService.calculateOrdersTotals).toHaveBeenCalledWith(1, 'admin');
+    expect(result.totalOrders).toBe(2);
+    expect(result.actualEndMoney).toBe(350.5);
   });
 });

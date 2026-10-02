@@ -9,6 +9,7 @@ import { DeliveryRegionModule } from './modules/delivery-region/delivery-region.
 import { ShiftManagementModule } from './modules/shift-management/shift-management.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { OrderModule } from './modules/order/order.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import PostgresTypeorm from 'src/config/db-config';
 
@@ -31,6 +32,7 @@ import PostgresTypeorm from 'src/config/db-config';
     ShiftManagementModule,
     CustomerModule,
     OrderModule,
+    StatisticsModule,
   ],
   controllers: [],
   providers: [],

@@ -74,3 +74,16 @@ export class EndShiftDTO {
   @IsString()
   notes?: string;
 }
+
+export class CloseShiftDTO {
+  @ApiProperty({
+    required: false,
+    example: 1250.75,
+    description: 'Optional declared closing cash. Does not change order statuses.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  endMoney?: number;
+}

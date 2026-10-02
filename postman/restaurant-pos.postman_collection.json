@@ -94,6 +94,18 @@
     {
       "key": "cashierPassword",
       "value": "123456"
+    },
+    {
+      "key": "from",
+      "value": "2026-10-01T00:00:00.000Z"
+    },
+    {
+      "key": "to",
+      "value": "2026-10-31T23:59:59.999Z"
+    },
+    {
+      "key": "topItemsLimit",
+      "value": "10"
     }
   ],
   "item": [
@@ -3511,7 +3523,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/shift-managements?page=1&pageSize=10&branchId={{branchId}}&cashierId={{cashierId}}",
+              "raw": "{{baseUrl}}/api/v1/shift-managements?page=1&pageSize=10&branchId={{branchId}}&cashierId={{cashierId}}&from={{from}}&to={{to}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3541,9 +3553,20 @@
                   "key": "status",
                   "value": "OPEN",
                   "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "{{from}}",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}",
+                  "disabled": false
                 }
               ]
-            }
+            },
+            "description": "Admin: all branches. Manager: own branch. Optional from/to filter startShift."
           }
         },
         {
@@ -3644,6 +3667,49 @@
           ]
         },
         {
+          "name": "Close shift (admin/manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/close",
+            "description": "Admin or manager JWT. Force-closes an OPEN shift. Manager: own branch only. Optional endMoney. Does not change order statuses.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endMoney\": 1250.75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — shift closed",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/close"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"endMoney\": 1250.75,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "End shift",
           "request": {
             "method": "POST",
@@ -3718,9 +3784,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Returns calculated total', () => {",
+                  "pm.test('Returns calculated shift DTO', () => {",
                   "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-                  "  pm.expect(Number(pm.response.text())).to.be.a(\"number\");",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql('CALCULATED');",
+                  "  pm.expect(j.totalOrders).to.be.a(\"number\");",
+                  "  pm.expect(j.actualEndMoney).to.be.a(\"number\");",
                   "});"
                 ]
               }
@@ -3729,18 +3798,17 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
-            "description": "Admin only. Sums PREPARED order totals for a CLOSED shift, sets status CALCULATED, marks orders SHIFT_CALCULATED. Returns actualEndMoney."
+            "description": "Admin only. Sums PREPARED totals for a CLOSED shift. Returns the full shift DTO including totalOrders and actualEndMoney."
           },
           "response": [
             {
-              "name": "201 Created — calculated end money",
+              "name": "200 OK — calculated shift",
               "originalRequest": {
                 "method": "POST",
-                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
-                "description": "Admin only. Sums PREPARED order totals for a CLOSED shift, sets status CALCULATED, marks orders SHIFT_CALCULATED. Returns actualEndMoney."
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
               },
-              "status": "Created",
-              "code": 201,
+              "status": "OK",
+              "code": 200,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -3749,9 +3817,166 @@
                 }
               ],
               "cookie": [],
-              "body": "40"
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CALCULATED\",\n  \"actualEndMoney\": 40,\n  \"totalOrders\": 2,\n  \"endMoney\": 42,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T21:00:00.000Z\"\n}"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "statistics",
+      "item": [
+        {
+          "name": "Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/dashboard?from={{from}}&to={{to}}&branchId={{branchId}}&topItemsLimit={{topItemsLimit}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                },
+                {
+                  "key": "topItemsLimit",
+                  "value": "{{topItemsLimit}}"
+                }
+              ]
+            },
+            "description": "Admin/manager. from/to required (orders.createdAt). Manager is scoped to own branch. Revenue = PREPARED + SHIFT_CALCULATED."
+          },
+          "response": [
+            {
+              "name": "200 OK — dashboard",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/statistics/dashboard?from={{from}}&to={{to}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"from\": \"2026-10-01T00:00:00.000Z\",\n  \"to\": \"2026-10-31T23:59:59.999Z\",\n  \"scope\": {\n    \"branchId\": 1,\n    \"branchName\": \"Main Branch\"\n  },\n  \"kpis\": {\n    \"orderCount\": 2,\n    \"revenue\": 40,\n    \"itemsSubtotal\": 40,\n    \"deliveryFees\": 0,\n    \"serviceFees\": 0,\n    \"averageOrderValue\": 20,\n    \"pendingCount\": 0,\n    \"returnedCount\": 0,\n    \"openShifts\": 0,\n    \"closedShifts\": 0,\n    \"calculatedShifts\": 1,\n    \"shiftDeclaredEndMoney\": 42,\n    \"shiftActualEndMoney\": 40\n  },\n  \"byOrderType\": [\n    {\n      \"orderType\": \"DINE_IN\",\n      \"count\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"byStatus\": [\n    {\n      \"status\": \"SHIFT_CALCULATED\",\n      \"count\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"topItems\": [\n    {\n      \"menuItemId\": 1,\n      \"nameAr\": \"قهوة\",\n      \"nameEn\": \"Coffee\",\n      \"quantity\": 4,\n      \"revenue\": 40\n    }\n  ],\n  \"dailyTrend\": [\n    {\n      \"date\": \"2026-10-01\",\n      \"orderCount\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"branches\": [\n    {\n      \"branchId\": 1,\n      \"branchName\": \"Main Branch\",\n      \"orderCount\": 2,\n      \"revenue\": 40,\n      \"averageOrderValue\": 20\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Print shift orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/shift-orders?shiftId={{shiftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "shift-orders"
+              ],
+              "query": [
+                {
+                  "key": "shiftId",
+                  "value": "{{shiftId}}"
+                }
+              ]
+            },
+            "description": "Print JSON for one shift. Optional from/to clip order createdAt. Lists all order statuses; footer uses revenue rule."
+          }
+        },
+        {
+          "name": "Print branch KPIs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/branch-kpis?from={{from}}&to={{to}}&branchId={{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "branch-kpis"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                }
+              ]
+            },
+            "description": "Print JSON for one branch. Admin must pass branchId. Manager uses own branch."
+          }
+        },
+        {
+          "name": "Print summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/summary?from={{from}}&to={{to}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Print JSON summary. Admin without branchId = all branches. Manager = own branch."
+          }
         }
       ]
     },

@@ -176,7 +176,16 @@ describe('ShiftManagementService', () => {
       };
 
       const shiftRepo = {
-        findOne: jest.fn().mockResolvedValue(shift),
+        findOne: jest.fn()
+          .mockResolvedValueOnce(shift)
+          .mockResolvedValueOnce({
+            ...shift,
+            status: ShiftStatus.CALCULATED,
+            actualEndMoney: 350.5,
+            totalOrders: 2,
+            branch: { id: 1 },
+            cashier: { id: 3 },
+          }),
         save: jest.fn(async (s) => s),
       };
       const orderRepo = {
@@ -212,7 +221,9 @@ describe('ShiftManagementService', () => {
 
       const result = await service.calculateOrdersTotals(7, 'admin');
 
-      expect(result).toBe(350.5);
+      expect(result.actualEndMoney).toBe(350.5);
+      expect(result.totalOrders).toBe(2);
+      expect(result.status).toBe(ShiftStatus.CALCULATED);
       expect(shift.status).toBe(ShiftStatus.CALCULATED);
       expect(shift.actualEndMoney).toBe(350.5);
       expect(shift.totalOrders).toBe(2);
@@ -267,6 +278,74 @@ describe('ShiftManagementService', () => {
       await expect(
         service.calculateOrdersTotals(7),
       ).rejects.toThrow(/must be closed/);
+    });
+  });
+
+  describe('closeShiftById', () => {
+    const admin = {
+      id: 1,
+      role: UserRole.ADMIN,
+      username: 'admin',
+    } as User;
+    const managerUser = {
+      id: 5,
+      role: UserRole.MANAGER,
+      username: 'manager1',
+      branch: { id: 1 },
+    } as User;
+
+    function mockCloseTxn(shift: Record<string, unknown> | null) {
+      const shiftRepo = {
+        findOne: jest.fn().mockResolvedValue(shift),
+        save: jest.fn(async (s) => s),
+      };
+      shiftRepository.manager.transaction.mockImplementation(async (cb) =>
+        cb({
+          getRepository: jest.fn(() => shiftRepo),
+        }),
+      );
+      return shiftRepo;
+    }
+
+    it('closes an OPEN shift and stores endMoney', async () => {
+      const shift = {
+        id: 7,
+        status: ShiftStatus.OPEN,
+        branch: { id: 1 },
+        cashier: { id: 3 },
+      };
+      mockCloseTxn(shift);
+
+      const result = await service.closeShiftById(7, admin, 99.5);
+
+      expect(result.status).toBe(ShiftStatus.CLOSED);
+      expect(result.endMoney).toBe(99.5);
+      expect(result.endShift).toBeInstanceOf(Date);
+      expect(result.updatedBy).toBe('admin');
+    });
+
+    it('forbids a manager from closing another branch shift', async () => {
+      mockCloseTxn({
+        id: 7,
+        status: ShiftStatus.OPEN,
+        branch: { id: 9 },
+      });
+
+      await expect(
+        service.closeShiftById(7, managerUser),
+      ).rejects.toThrow(/another branch/);
+    });
+
+    it('rejects closing a shift that is not OPEN', async () => {
+      mockCloseTxn({
+        id: 7,
+        status: ShiftStatus.CLOSED,
+        branch: { id: 1 },
+      });
+
+      await expect(service.closeShiftById(7, admin)).rejects.toThrow(
+        /Only OPEN shifts/,
+      );
     });
   });
 });

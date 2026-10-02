@@ -64,7 +64,7 @@ import {
 
 import { Order } from './order.entity';
 
-import { FindOptionsWhere } from 'typeorm';
+import { Between, FindOptionsWhere } from 'typeorm';
 
 
 
@@ -149,6 +149,12 @@ export class OrderController {
     if (query.orderType !== undefined) {
 
       where.orderType = query.orderType;
+
+    }
+
+    if (query.from && query.to) {
+
+      where.createdAt = Between(new Date(query.from), new Date(query.to));
 
     }
 
