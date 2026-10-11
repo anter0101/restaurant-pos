@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Logger,
   NotFoundException,
   Param,
@@ -174,6 +175,7 @@ export class ShiftManagementController {
   }
 
   @Post(':id/close')
+  @HttpCode(200)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Force-close an OPEN shift by id',

@@ -173,10 +173,19 @@ export class ShiftManagementService {
   ): Promise<ShiftManagement> {
     return this.shiftRepository.manager.transaction(async (manager) => {
       const shiftRepo = manager.getRepository(ShiftManagement);
+      // Lock the shift row only. FOR UPDATE plus joined relations fails on
+      // Postgres because cashier.branch is an eager nullable outer join.
+      const locked = await shiftRepo.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new NotFoundException(`Shift with id ${id} not found`);
+      }
+
       const shift = await shiftRepo.findOne({
         where: { id },
         relations: ['branch', 'cashier'],
-        lock: { mode: 'pessimistic_write' },
       });
       if (!shift) {
         throw new NotFoundException(`Shift with id ${id} not found`);
@@ -192,7 +201,16 @@ export class ShiftManagementService {
         shift.endMoney = endMoney;
       }
       shift.updatedBy = actor.username;
-      return shiftRepo.save(shift);
+      await shiftRepo.save(shift);
+
+      const reloaded = await shiftRepo.findOne({
+        where: { id },
+        relations: ['branch', 'cashier'],
+      });
+      if (!reloaded) {
+        throw new NotFoundException(`Shift with id ${id} not found`);
+      }
+      return reloaded;
     });
   }
 
