@@ -13,7 +13,12 @@ export class CreateUserTable1720796623509 implements MigrationInterface {
         columns: [
           idColumn,
           {
-            name: 'email',
+            name: 'name',
+            type: 'varchar',
+            isNullable: false,
+          },
+          {
+            name: 'username',
             type: 'varchar',
             isUnique: true,
             isNullable: false,
@@ -24,25 +29,27 @@ export class CreateUserTable1720796623509 implements MigrationInterface {
             isNullable: false,
           },
           {
-            name: 'username',
-            type: 'varchar',
-            isNullable: true,
-          },
-          {
-            name: 'activated',
-            type: 'boolean',
-            default: false,
-            isNullable: false,
-          },
-          {
-            name: 'image_url',
+            name: 'phone',
             type: 'varchar',
             isNullable: true,
           },
           {
             name: 'role',
             type: 'enum',
-            enum: [UserRole.ADMIN, UserRole.USER],
+            enum: [
+              UserRole.USER,
+              UserRole.ADMIN,
+              UserRole.MANAGER,
+              UserRole.CASHIER,
+              UserRole.CALLCENTER,
+              UserRole.KITCHEN_STAFF,
+            ],
+            isNullable: false,
+          },
+          {
+            name: 'is_active',
+            type: 'boolean',
+            default: true,
             isNullable: false,
           },
           ...otherBaseColumns,

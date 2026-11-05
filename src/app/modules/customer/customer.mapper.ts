@@ -1,0 +1,93 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Customer } from './customer.entity';
+import { CustomerDTO } from './dtos/customer.dto';
+import { CreateCustomerDTO } from './dtos/create-customer.dto';
+import { UpdateCustomerDTO } from './dtos/update-customer.dto';
+import { BaseDTO } from 'src/core/utils/base.dto';
+
+const allowedCustomerDtoKeys: ReadonlyArray<keyof CustomerDTO | keyof BaseDTO> = [
+  'id',
+  'name',
+  'phone',
+  'alternativePhone',
+  'address',
+  'secondaryAddress',
+  'thirdAddress',
+  'customerType',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'deletedAt',
+  'deletedBy',
+] as const;
+
+export function mapCustomerToCustomerDtoSelective(
+  customer: Customer,
+  keys?: (keyof CustomerDTO | keyof BaseDTO)[],
+): Partial<CustomerDTO>;
+export function mapCustomerToCustomerDtoSelective(
+  customers: Customer[],
+  keys?: (keyof CustomerDTO | keyof BaseDTO)[],
+): Partial<CustomerDTO>[];
+export function mapCustomerToCustomerDtoSelective(
+  customerOrCustomers: Customer | Customer[],
+  keys?: (keyof CustomerDTO | keyof BaseDTO)[],
+): Partial<CustomerDTO> | Partial<CustomerDTO>[] {
+  const mapSingle = (customer: Customer): Partial<CustomerDTO> => {
+    const dto: Partial<CustomerDTO> = {};
+    const keysToMap = (keys || allowedCustomerDtoKeys).filter((key) =>
+      allowedCustomerDtoKeys.includes(key),
+    );
+
+    keysToMap.forEach((key) => {
+      if (key in customer && customer[key as keyof Customer] !== undefined) {
+        (dto as any)[key] = customer[key as keyof Customer];
+      }
+    });
+
+    return dto;
+  };
+
+  return Array.isArray(customerOrCustomers)
+    ? customerOrCustomers.map(mapSingle)
+    : mapSingle(customerOrCustomers);
+}
+
+export function mapCreateCustomerDtoToEntity(dto: CreateCustomerDTO): Customer {
+  const customer = new Customer();
+  customer.name = dto.name.trim();
+  customer.phone = dto.phone.trim();
+  customer.alternativePhone = dto.alternativePhone?.trim() || undefined;
+  customer.address = dto.address?.trim() || undefined;
+  customer.secondaryAddress = dto.secondaryAddress?.trim() || undefined;
+  customer.thirdAddress = dto.thirdAddress?.trim() || undefined;
+  customer.customerType = dto.customerType;
+  return customer;
+}
+
+export function mapUpdateCustomerDtoToEntity(
+  dto: UpdateCustomerDTO,
+): Partial<Customer> {
+  const partial: Partial<Customer> = {};
+
+  if (dto.id !== undefined) partial.id = dto.id;
+  if (dto.name !== undefined) partial.name = dto.name.trim();
+  if (dto.phone !== undefined) partial.phone = dto.phone.trim();
+  if (dto.alternativePhone !== undefined) {
+    partial.alternativePhone = dto.alternativePhone?.trim() || undefined;
+  }
+  if (dto.address !== undefined) {
+    partial.address = dto.address?.trim() || undefined;
+  }
+  if (dto.secondaryAddress !== undefined) {
+    partial.secondaryAddress = dto.secondaryAddress?.trim() || undefined;
+  }
+  if (dto.thirdAddress !== undefined) {
+    partial.thirdAddress = dto.thirdAddress?.trim() || undefined;
+  }
+  if (dto.customerType !== undefined) partial.customerType = dto.customerType;
+  if (dto.updatedBy !== undefined) partial.updatedBy = dto.updatedBy;
+
+  return partial;
+}

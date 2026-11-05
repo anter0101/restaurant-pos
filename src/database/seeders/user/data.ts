@@ -4,11 +4,12 @@ import { UserRole } from 'src/core/enums/user-role';
 export const users: UserDTO[] = [
   {
     id: 1,
-    email: 'admin@admin.com',
-    password: '12345',
-    username: 'Administrator',
+    name: 'Administrator',
+    username: 'admin',
+    password: '123456',
     role: UserRole.ADMIN,
-    activated: true,
+    isActive: true,
     createdBy: 'system',
   },
 ];
+    

@@ -39,4 +39,12 @@ export class PaginateDTO {
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
   sortOrder?: 'ASC' | 'DESC';
+
+  @ApiProperty({
+    required: false,
+    description: 'Search term — matches against searchable text fields (case-insensitive)',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

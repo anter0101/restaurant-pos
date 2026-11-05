@@ -1,70 +1,104 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { User } from './user.entity';
 import { UserDTO } from './dtos/user.dto';
-import { BaseDTO } from 'src/core/utils/base.dto';
+import { CreateUserDTO } from './dtos/create-user.dto';
 import { UpdateUserDTO } from './dtos/update-user.dto';
+import { BaseDTO } from 'src/core/utils/base.dto';
+import { Branch } from '../branch/branch.entity';
+import { mapBranchToBranchDtoSelective } from '../branch/branch.mapper';
 
-// Define the keys allowed for mapping (subset of UserDTO | BaseDTO)
-// Excludes 'password' by default.
 const allowedUserDtoKeys: ReadonlyArray<keyof UserDTO | keyof BaseDTO> = [
   'id',
-  'createdAt',
-  'email',
+  'name',
   'username',
-  'activated',
-  'imageUrl',
+  'phone',
   'role',
-];
+  'isActive',
+  'branch',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'deletedAt',
+  'deletedBy',
+] as const;
 
-/**
- * Maps a User entity or an array of User entities to UserDTO objects,
- * allowing selective inclusion of properties based on a predefined allowed list.
- *
- * @param userOrUsers - The User entity or array of User entities to map.
- * @param keys - Optional array of keys (properties) to include in the resulting DTO(s).
- *               Only keys present in the `allowedUserDtoKeys` list will be considered.
- *               If omitted, all keys from `allowedUserDtoKeys` will be mapped.
- * @returns A partial UserDTO or an array of partial UserDTOs containing the selected properties.
- */
 export function mapUserToUserDtoSelective(
   user: User,
-  keys?: (keyof UserDTO | keyof BaseDTO)[],
-): UpdateUserDTO;
+  keys?: (keyof UserDTO |  keyof BaseDTO)[],
+): Partial<UserDTO>;
 export function mapUserToUserDtoSelective(
   users: User[],
   keys?: (keyof UserDTO | keyof BaseDTO)[],
-): UpdateUserDTO[];
+): Partial<UserDTO>[];
 export function mapUserToUserDtoSelective(
   userOrUsers: User | User[],
   keys?: (keyof UserDTO | keyof BaseDTO)[],
-): UpdateUserDTO | UpdateUserDTO[] {
-  const mapSingle = (user: User): UpdateUserDTO => {
-    const resultDto: UpdateUserDTO = {};
+): Partial<UserDTO> | Partial<UserDTO>[] {
+  const mapSingle = (user: User): Partial<UserDTO> => {
+    const dto: Partial<UserDTO> = {};
 
-    // Determine keys to map: User-provided keys filtered by allowed keys, or default allowed keys
     const keysToMap = (keys || allowedUserDtoKeys).filter((key) =>
-      (allowedUserDtoKeys as Array<keyof UserDTO | keyof BaseDTO>).includes(
-        key,
-      ),
+      allowedUserDtoKeys.includes(key),
     );
 
     keysToMap.forEach((key) => {
-      // Check if the key exists on the source User entity object and is not undefined
-      // This runtime check is crucial.
       if (key in user && user[key as keyof User] !== undefined) {
-        // Assign the value. Casting to 'any' remains the most pragmatic way
-        // to handle the dynamic key assignment across potentially different types.
-        // The 'key in user' check provides runtime safety.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (resultDto as any)[key] = user[key as keyof User];
+        (dto as any)[key] = user[key as keyof User];
       }
+      if (key === 'branch' && user.branch) {
+        (dto as any)[key] = mapBranchToBranchDtoSelective(user.branch);
+      } 
     });
 
-    return resultDto;
+    return dto;
   };
 
-  if (Array.isArray(userOrUsers)) {
-    return userOrUsers.map(mapSingle);
-  } else {
-    return mapSingle(userOrUsers);
-  }
+  return Array.isArray(userOrUsers)
+    ? userOrUsers.map(mapSingle)
+    : mapSingle(userOrUsers);
 }
+
+export const mapCreateUserDtoToEntity = (dto: CreateUserDTO): User => {
+  const user = new User();
+
+  user.name = dto.name;
+  user.password = dto.password;
+  user.role = dto.role;
+  if (dto.username !== undefined) user.username = dto.username;
+  if (dto.phone !== undefined) user.phone = dto.phone;
+  if (dto.isActive !== undefined) user.isActive = dto.isActive;
+  if (dto.branchId !== undefined) {
+    const branch = new Branch();
+    branch.id = dto.branchId;
+    user.branch = branch;
+  }
+
+    return user;
+};
+
+export const mapUpdateUserDtoToEntity = (dto: UpdateUserDTO): User => {
+  const user = new User();
+
+  if (dto.id !== undefined) user.id = dto.id;
+  if (dto.name !== undefined) user.name = dto.name;
+  if (dto.username !== undefined) user.username = dto.username;
+  if (dto.password !== undefined) user.password = dto.password;
+  if (dto.phone !== undefined) user.phone = dto.phone;
+  if (dto.role !== undefined) user.role = dto.role;
+  if (dto.isActive !== undefined) user.isActive = dto.isActive;
+  if (dto.branchId !== undefined) {
+    const branch = new Branch();
+    branch.id = dto.branchId;
+    user.branch = branch;
+  }
+
+  if (dto.createdBy !== undefined) user.createdBy = dto.createdBy;
+  if (dto.createdAt !== undefined) user.createdAt = dto.createdAt;
+  if (dto.updatedBy !== undefined) user.updatedBy = dto.updatedBy;
+  if (dto.updatedAt !== undefined) user.updatedAt = dto.updatedAt;
+  if (dto.deletedBy !== undefined) user.deletedBy = dto.deletedBy;
+  if (dto.deletedAt !== undefined) user.deletedAt = dto.deletedAt;
+
+  return user;
+};

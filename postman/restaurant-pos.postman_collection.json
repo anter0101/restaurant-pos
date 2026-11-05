@@ -1,0 +1,4259 @@
+{
+  "info": {
+    "name": "Restaurant POS API",
+    "description": "Restaurant POS API — Bearer auth, POS-style order validation (submitted totals must match server), saved POST examples, E2E scenarios. Service fee on DINE_IN only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "branchId",
+      "value": "1"
+    },
+    {
+      "key": "userId",
+      "value": "1"
+    },
+    {
+      "key": "cashierId",
+      "value": "1"
+    },
+    {
+      "key": "menuCategoryId",
+      "value": "1"
+    },
+    {
+      "key": "menuItemId",
+      "value": "1"
+    },
+    {
+      "key": "deliveryRegionId",
+      "value": "1"
+    },
+    {
+      "key": "shiftId",
+      "value": "1"
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    },
+    {
+      "key": "firstOrderQueue",
+      "value": ""
+    },
+    {
+      "key": "secondOrderQueue",
+      "value": ""
+    },
+    {
+      "key": "wrapOrderQueue",
+      "value": ""
+    },
+    {
+      "key": "lastOrderQueue",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": "1"
+    },
+    {
+      "key": "customerPhone",
+      "value": "01012345678"
+    },
+    {
+      "key": "managerUsername",
+      "value": "manager1"
+    },
+    {
+      "key": "managerPassword",
+      "value": "123456"
+    },
+    {
+      "key": "cashierUsername",
+      "value": "cashier1"
+    },
+    {
+      "key": "cashierPassword",
+      "value": "123456"
+    },
+    {
+      "key": "from",
+      "value": "2026-10-01T00:00:00.000Z"
+    },
+    {
+      "key": "to",
+      "value": "2026-10-31T23:59:59.999Z"
+    },
+    {
+      "key": "topItemsLimit",
+      "value": "10"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — E2E Scenarios",
+      "description": "Run each sub-folder with Collection Runner (in order, 1 iteration). Scenario 4 step 3: set Runner iterations to 100 for queue wrap setup.",
+      "item": [
+        {
+          "name": "Scenario 1 — Dine-in (no delivery fees)",
+          "description": "Opens shift, creates order without deliveryRegionId. Asserts deliveryFees=0 and orderQueue=0.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Login OK', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const json = pm.response.json();",
+                      "pm.expect(json.token).to.be.a('string');",
+                      "pm.collectionVariables.set('accessToken', json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Open shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Shift opened', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('shiftId', String(json.id));",
+                      "pm.expect(json.status).to.eql('OPEN');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Create order (no deliveryRegionId)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Order created', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('orderId', String(json.id));",
+                      "pm.test('deliveryFees is zero', () => pm.expect(json.deliveryFees).to.eql(0));",
+                      "pm.test('orderQueue is 0 after shift open', () => pm.expect(json.orderQueue).to.eql(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Scenario 2 — Delivery order with fees",
+          "description": "Creates delivery region, then order with deliveryRegionId. Asserts deliveryFees, serviceFee, and totalAmount.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('accessToken', json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Create delivery region",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Region created', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('deliveryRegionId', String(json.id));",
+                      "pm.expect(json.deliveryPrice).to.be.above(0);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"Scenario-North\",\n  \"deliveryPrice\": 5.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/delivery-regions",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "201 Created — delivery region",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"Scenario-North\",\n  \"deliveryPrice\": 5.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/delivery-regions",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"regionName\": \"Downtown\",\n  \"deliveryPrice\": 5.5,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Create order (with delivery)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Delivery order created', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('orderId', String(json.id));",
+                      "pm.test('deliveryFees snapshotted', () => pm.expect(json.deliveryFees).to.be.above(0));",
+                      "pm.test('serviceFee is zero for delivery', () => pm.expect(json.serviceFee).to.eql(0));",
+                      "pm.test('totalAmount = subtotal + delivery + service', () => {",
+                      "  const expected = json.itemsSubtotal + json.deliveryFees + json.serviceFee;",
+                      "  pm.expect(json.totalAmount).to.eql(expected);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — delivery order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DELIVERY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 2,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Scenario 3 — Shift end resets queue",
+          "description": "Orders get queue 0 then 1. End shift resets counter. New shift → next order queue is 0 again.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Open shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('shiftId', String(pm.response.json().id));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Create order #1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const q = pm.response.json().orderQueue;",
+                      "pm.collectionVariables.set('firstOrderQueue', String(q));",
+                      "pm.test('First order queue is 0', () => pm.expect(q).to.eql(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "4. Create order #2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const q = pm.response.json().orderQueue;",
+                      "pm.collectionVariables.set('secondOrderQueue', String(q));",
+                      "pm.test('Second order queue is 1', () => pm.expect(q).to.eql(1));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "5. End shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Shift closed', () => pm.response.to.have.status(200));",
+                      "pm.expect(pm.response.json().status).to.eql('CLOSED');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift closed",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "6. Open new shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('shiftId', String(pm.response.json().id));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "7. Create order #3 (queue reset)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const q = pm.response.json().orderQueue;",
+                      "pm.test('Queue reset to 0 after new shift', () => pm.expect(q).to.eql(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Scenario 4 — Queue wraps at 100",
+          "description": "Step 3: run Collection Runner with 100 iterations on that request only to advance queue to 100. Then steps 4–5 verify wrap 100→0.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Open shift (queue → 0)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('shiftId', String(pm.response.json().id));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Setup — create orders until queue reaches 100 (run 100×)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('lastOrderQueue', String(json.orderQueue));",
+                      "pm.test('orderQueue in range', () => {",
+                      "  pm.expect(json.orderQueue).to.be.at.least(0);",
+                      "  pm.expect(json.orderQueue).to.be.at.most(100);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "4. Create order at queue 100",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const last = Number(pm.collectionVariables.get('lastOrderQueue'));",
+                      "if (last !== 99) {",
+                      "  console.warn('Expected lastOrderQueue=99 before this step. Run step 3 with 100 iterations first. last=' + last);",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const q = pm.response.json().orderQueue;",
+                      "pm.collectionVariables.set('wrapOrderQueue', String(q));",
+                      "pm.test('orderQueue is 100', () => pm.expect(q).to.eql(100));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "5. Create order after wrap (queue → 0)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const q = pm.response.json().orderQueue;",
+                      "pm.test('orderQueue wraps back to 0', () => pm.expect(q).to.eql(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Scenario 5 — Admin calculates shift totals",
+          "description": "Open shift → order → close → admin calculates prepared totals. Asserts isCalculatedShift=true and actualEndMoney returned.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Open shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.collectionVariables.set('shiftId', String(j.id));",
+                      "pm.expect(j.isCalculatedShift).to.eql(false);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ]
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Has open shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.expect(pm.response.json()).to.eql(true);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/shift-managements/has-open-shift"
+              }
+            },
+            {
+              "name": "4. Create order",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — takeaway order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"TAKEAWAY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "5. End shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.collectionVariables.set('shiftId', String(j.id));",
+                      "pm.expect(j.status).to.eql('CLOSED');",
+                      "pm.expect(j.isCalculatedShift).to.eql(false);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift closed",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ]
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "6. Has open shift (false)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.expect(pm.response.json()).to.eql(false);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/shift-managements/has-open-shift"
+              }
+            },
+            {
+              "name": "Login as admin (for calculate)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Admin login required for calculate-orders-totals."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Admin login required for calculate-orders-totals."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "7. Calculate orders totals",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "pm.expect(Number(pm.response.text())).to.be.a('number');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — calculated end money",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                    "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "40"
+                }
+              ]
+            },
+            {
+              "name": "8. Get shift (calculated)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.expect(j.status).to.eql('CALCULATED');",
+                      "pm.expect(j.isCalculatedShift).to.eql(true);",
+                      "pm.expect(j).to.have.property('actualEndMoney');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Full happy path (all flows)",
+          "description": "Combined smoke test: login → shift → region → dine-in + delivery orders → get order → end shift → admin calculate totals.",
+          "item": [
+            {
+              "name": "1. Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "2. Open shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('shiftId', String(pm.response.json().id));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift opened",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                    "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "3. Create delivery region",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('deliveryRegionId', String(pm.response.json().id));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"HappyPath-Downtown\",\n  \"deliveryPrice\": 5.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/delivery-regions",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "response": [
+                {
+                  "name": "201 Created — delivery region",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"HappyPath-Downtown\",\n  \"deliveryPrice\": 5.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/delivery-regions",
+                    "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"regionName\": \"Downtown\",\n  \"deliveryPrice\": 5.5,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "4a. Create order — dine-in",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.expect(pm.response.json().deliveryFees).to.eql(0);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — dine-in order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 1.88,\n  \"totalAmount\": 14.38,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "4b. Create order — delivery",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "pm.collectionVariables.set('orderId', String(json.id));",
+                      "pm.expect(json.deliveryFees).to.be.above(0);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — delivery order",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/orders",
+                    "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 10,\n  \"orderType\": \"DELIVERY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 2,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "5. Get order by id",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('orderId')));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+              }
+            },
+            {
+              "name": "6. End shift",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.collectionVariables.set('shiftId', String(j.id));",
+                      "pm.expect(j.status).to.eql('CLOSED');",
+                      "pm.expect(j.isCalculatedShift).to.eql(false);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [
+                {
+                  "name": "201 Created — shift closed",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                    "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Login as admin (for calculate)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('accessToken', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Admin login required for calculate-orders-totals."
+              },
+              "response": [
+                {
+                  "name": "200 OK — login",
+                  "originalRequest": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": "{{baseUrl}}/api/v1/auth/login",
+                    "description": "Admin login required for calculate-orders-totals."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "7. Calculate orders totals",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const closed = pm.response;",
+                      "pm.expect(closed.code).to.eql(200);",
+                      "pm.expect(Number(closed.text())).to.be.a('number');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+              },
+              "response": [
+                {
+                  "name": "201 Created — calculated end money",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+                    "description": "Example request body is pre-filled where applicable. Shift open/end use the logged-in cashier from the JWT."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "40"
+                }
+              ]
+            },
+            {
+              "name": "8. Get shift (calculated)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "pm.expect(j.status).to.eql('CALCULATED');",
+                      "pm.expect(j.isCalculatedShift).to.eql(true);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('accessToken', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "200 OK — login",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"username\": \"admin\",\n    \"role\": \"ADMIN\",\n    \"isActive\": true,\n    \"branch\": {\n      \"id\": 1,\n      \"name\": \"Main Branch\",\n      \"type\": \"DINE_IN\",\n      \"address\": \"123 Example Rd\",\n      \"servicePercentage\": 0.15\n    }\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "branches",
+      "item": [
+        {
+          "name": "List branches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/branches?page=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "branches"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('branchId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Branch\",\n  \"type\": \"DINE_IN\",\n  \"address\": \"123 Example Rd\",\n  \"phone\": \"+15550101\",\n  \"servicePercentage\": 0.15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/branches",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — branch",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Main Branch\",\n  \"type\": \"DINE_IN\",\n  \"address\": \"123 Example Rd\",\n  \"phone\": \"+15550101\",\n  \"servicePercentage\": 0.15\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/branches",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Main Branch\",\n  \"type\": \"DINE_IN\",\n  \"address\": \"123 Example Rd\",\n  \"phone\": \"+15550101\",\n  \"servicePercentage\": 0.15,\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get branch by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/branches/{{branchId}}"
+          }
+        },
+        {
+          "name": "Update branch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Branch Updated\",\n  \"servicePercentage\": 0.10\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/branches/{{branchId}}"
+          }
+        },
+        {
+          "name": "Delete branch",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/branches/{{branchId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/users?page=1&pageSize=10"
+          }
+        },
+        {
+          "name": "Create user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('userId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cashier One\",\n  \"username\": \"cashier1\",\n  \"password\": \"123456\",\n  \"role\": \"CASHIER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/users",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — user",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Cashier One\",\n  \"username\": \"cashier1\",\n  \"password\": \"123456\",\n  \"role\": \"CASHIER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/users",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 2,\n  \"name\": \"Cashier One\",\n  \"username\": \"cashier1\",\n  \"role\": \"CASHIER\",\n  \"isActive\": true,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create manager user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Branch Manager\",\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\",\n  \"role\": \"MANAGER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/users",
+            "description": "Creates a MANAGER user — credentials are used in shift open/end request bodies."
+          },
+          "response": [
+            {
+              "name": "201 Created — user",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Branch Manager\",\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\",\n  \"role\": \"MANAGER\",\n  \"branchId\": {{branchId}},\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/users",
+                "description": "Creates a MANAGER user — credentials are used in shift open/end request bodies."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 2,\n  \"name\": \"Cashier One\",\n  \"username\": \"cashier1\",\n  \"role\": \"CASHIER\",\n  \"isActive\": true,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get user by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cashier Updated\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Delete user",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "menu-categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/menu-categories?page=1&pageSize=10"
+          }
+        },
+        {
+          "name": "Create category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('menuCategoryId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"مشروبات\",\n  \"nameEn\": \"Beverages\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/menu-categories",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — category",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nameAr\": \"مشروبات\",\n  \"nameEn\": \"Beverages\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/menu-categories",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"nameAr\": \"مشروبات\",\n  \"nameEn\": \"Beverages\",\n  \"isActive\": true,\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get category by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/menu-categories/{{menuCategoryId}}"
+          }
+        },
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameEn\": \"Drinks\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/menu-categories/{{menuCategoryId}}"
+          }
+        },
+        {
+          "name": "Delete category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/menu-categories/{{menuCategoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "menu-items",
+      "item": [
+        {
+          "name": "List menu items",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/menu-items?page=1&pageSize=10&branchId={{branchId}}"
+          }
+        },
+        {
+          "name": "Create menu item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('menuItemId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuCategoryId\": {{menuCategoryId}},\n  \"nameAr\": \"قهوة\",\n  \"nameEn\": \"Coffee\",\n  \"defaultPrice\": 12.5,\n  \"isActive\": true,\n  \"branches\": [{ \"branchId\": {{branchId}}, \"price\": 12.5, \"isActive\": true }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/menu-items",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — menu item",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"menuCategoryId\": {{menuCategoryId}},\n  \"nameAr\": \"قهوة\",\n  \"nameEn\": \"Coffee\",\n  \"defaultPrice\": 12.5,\n  \"isActive\": true,\n  \"branches\": [{ \"branchId\": {{branchId}}, \"price\": 12.5, \"isActive\": true }]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/menu-items",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"nameAr\": \"قهوة\",\n  \"nameEn\": \"Coffee\",\n  \"defaultPrice\": 12.5,\n  \"isActive\": true,\n  \"menuCategory\": {\n    \"id\": 1,\n    \"nameEn\": \"Beverages\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get menu item by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/menu-items/{{menuItemId}}"
+          }
+        },
+        {
+          "name": "Get item branch pricing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/menu-items/{{menuItemId}}/branches"
+          }
+        },
+        {
+          "name": "Assign item to branches",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": {{menuItemId}},\n  \"branches\": [{ \"branchId\": {{branchId}}, \"price\": 14, \"isActive\": true }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/menu-items/assign-branch",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — branch assignment",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": {{menuItemId}},\n  \"branches\": [{ \"branchId\": {{branchId}}, \"price\": 14, \"isActive\": true }]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/menu-items/assign-branch",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"menuItemId\": 1,\n  \"branchId\": 1,\n  \"price\": 14,\n  \"isActive\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update item branch prices",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branches\": [{ \"branchId\": {{branchId}}, \"price\": 15.5, \"isActive\": true }]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/menu-items/{{menuItemId}}/branches"
+          }
+        },
+        {
+          "name": "Update menu item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"defaultPrice\": 13.0\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/menu-items/{{menuItemId}}"
+          }
+        },
+        {
+          "name": "Delete menu item",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/menu-items/{{menuItemId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delivery-regions",
+      "item": [
+        {
+          "name": "List delivery regions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/delivery-regions?page=1&pageSize=10"
+          }
+        },
+        {
+          "name": "Create delivery region",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('deliveryRegionId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"Downtown\",\n  \"deliveryPrice\": 5.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/delivery-regions",
+            "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+          },
+          "response": [
+            {
+              "name": "201 Created — delivery region",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"branchId\": {{branchId}},\n  \"regionName\": \"Downtown\",\n  \"deliveryPrice\": 5.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/delivery-regions",
+                "description": "Example request body is pre-filled. Branch and open shift for orders are resolved from the logged-in user token."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"regionName\": \"Downtown\",\n  \"deliveryPrice\": 5.5,\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\"\n  },\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get delivery region by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/delivery-regions/{{deliveryRegionId}}"
+          }
+        },
+        {
+          "name": "Update delivery region",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryPrice\": 6.0\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/delivery-regions/{{deliveryRegionId}}"
+          }
+        },
+        {
+          "name": "Delete delivery region",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/delivery-regions/{{deliveryRegionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "customers",
+      "description": "End-customer phone book (separate from staff users). Orders reference customers via customerId.",
+      "item": [
+        {
+          "name": "Search customer by phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rows = pm.response.json();",
+                  "const match = Array.isArray(rows) ? rows.find((c) => c.phone === pm.collectionVariables.get('customerPhone')) || rows[0] : null;",
+                  "if (match?.id) pm.collectionVariables.set('customerId', String(match.id));",
+                  "if (match?.phone) pm.collectionVariables.set('customerPhone', String(match.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?page=1&pageSize=10&search={{customerPhone}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "{{customerPhone}}",
+                  "description": "phone number (also matches name, address)"
+                },
+                {
+                  "key": "customerType",
+                  "value": "NORMAL",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Call-center lookup — set `customerPhone` collection variable, then run. Saves `customerId` from the first match."
+          }
+        },
+        {
+          "name": "Get customer by phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('customerId', String(j.id));",
+                  "if(j.phone) pm.collectionVariables.set('customerPhone', String(j.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/customers/by-phone/{{customerPhone}}",
+            "description": "Exact phone lookup (path param). Also sets `customerId` and `customerPhone` collection variables."
+          }
+        },
+        {
+          "name": "Create customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('customerId', String(j.id));",
+                  "if(j.phone) pm.collectionVariables.set('customerPhone', String(j.phone));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\",\n  \"customerType\": \"NORMAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/customers",
+            "description": "Creates an end-customer record. deliveryAddress on DELIVERY orders defaults to customer.address when omitted."
+          },
+          "response": [
+            {
+              "name": "201 Created — customer",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/customers",
+                "description": "Creates an end-customer record. deliveryAddress on DELIVERY orders defaults to customer.address when omitted."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"name\": \"محمد\",\n  \"phone\": \"01012345678\",\n  \"address\": \"شارع الجلاء\",\n  \"customerType\": \"NORMAL\",\n  \"createdAt\": \"2026-06-16T10:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get customer by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"محمد أحمد\",\n  \"address\": \"شارع الجلاء\",\n  \"secondaryAddress\": \"شارع النصر\",\n  \"thirdAddress\": \"شارع المعادي\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Delete customer",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-managements",
+      "item": [
+        {
+          "name": "List shifts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/shift-managements?page=1&pageSize=10&branchId={{branchId}}&cashierId={{cashierId}}&from={{from}}&to={{to}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "shift-managements"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                },
+                {
+                  "key": "cashierId",
+                  "value": "{{cashierId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "OPEN",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "{{from}}",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Admin: all branches. Manager: own branch. Optional from/to filter startShift."
+          }
+        },
+        {
+          "name": "Open shift",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json(); if(j.id) pm.collectionVariables.set('shiftId', String(j.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/shift-managements/open",
+            "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created — shift opened",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/open",
+                "description": "Opens a shift for the logged-in cashier (JWT must be CASHIER). Body: manager username/password for authorization. Resets branch order queue counter.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"OPEN\",\n  \"isCalculatedShift\": false,\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T08:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get shift by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}"
+          },
+          "response": [
+            {
+              "name": "200 OK — shift (calculated)",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CALCULATED\",\n  \"isCalculatedShift\": true,\n  \"actualEndMoney\": 40,\n  \"totalOrders\": 2,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T21:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Close shift (admin/manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/close",
+            "description": "Admin or manager JWT. Force-closes an OPEN shift. Manager: own branch only. Optional endMoney. Does not change order statuses.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endMoney\": 1250.75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — shift closed",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/close"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"endMoney\": 1250.75,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "End shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/shift-managements/end",
+            "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created — shift closed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/shift-managements/end",
+                "description": "Closes the logged-in cashier open shift. Body: manager username/password for authorization.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CLOSED\",\n  \"isCalculatedShift\": false,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T20:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Has open shift",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/shift-managements/has-open-shift",
+            "description": "Returns true when the logged-in cashier has an open shift at their branch."
+          }
+        },
+        {
+          "name": "Calculate orders totals (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns calculated shift DTO', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql('CALCULATED');",
+                  "  pm.expect(j.totalOrders).to.be.a(\"number\");",
+                  "  pm.expect(j.actualEndMoney).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals",
+            "description": "Admin only. Sums PREPARED totals for a CLOSED shift. Returns the full shift DTO including totalOrders and actualEndMoney."
+          },
+          "response": [
+            {
+              "name": "200 OK — calculated shift",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/v1/shift-managements/{{shiftId}}/calculate-orders-totals"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"status\": \"CALCULATED\",\n  \"actualEndMoney\": 40,\n  \"totalOrders\": 2,\n  \"endMoney\": 42,\n  \"endShift\": \"2026-06-16T20:00:00.000Z\",\n  \"startShift\": \"2026-06-16T08:00:00.000Z\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\"\n  },\n  \"cashier\": {\n    \"id\": 2,\n    \"name\": \"Cashier One\",\n    \"username\": \"cashier1\"\n  },\n  \"createdAt\": \"2026-06-16T08:00:00.000Z\",\n  \"updatedAt\": \"2026-06-16T21:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statistics",
+      "item": [
+        {
+          "name": "Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/dashboard?from={{from}}&to={{to}}&branchId={{branchId}}&topItemsLimit={{topItemsLimit}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                },
+                {
+                  "key": "topItemsLimit",
+                  "value": "{{topItemsLimit}}"
+                }
+              ]
+            },
+            "description": "Admin/manager. from/to required (orders.createdAt). Manager is scoped to own branch. Revenue = PREPARED + SHIFT_CALCULATED."
+          },
+          "response": [
+            {
+              "name": "200 OK — dashboard",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/v1/statistics/dashboard?from={{from}}&to={{to}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"from\": \"2026-10-01T00:00:00.000Z\",\n  \"to\": \"2026-10-31T23:59:59.999Z\",\n  \"scope\": {\n    \"branchId\": 1,\n    \"branchName\": \"Main Branch\"\n  },\n  \"kpis\": {\n    \"orderCount\": 2,\n    \"revenue\": 40,\n    \"itemsSubtotal\": 40,\n    \"deliveryFees\": 0,\n    \"serviceFees\": 0,\n    \"averageOrderValue\": 20,\n    \"pendingCount\": 0,\n    \"returnedCount\": 0,\n    \"openShifts\": 0,\n    \"closedShifts\": 0,\n    \"calculatedShifts\": 1,\n    \"shiftDeclaredEndMoney\": 42,\n    \"shiftActualEndMoney\": 40\n  },\n  \"byOrderType\": [\n    {\n      \"orderType\": \"DINE_IN\",\n      \"count\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"byStatus\": [\n    {\n      \"status\": \"SHIFT_CALCULATED\",\n      \"count\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"topItems\": [\n    {\n      \"menuItemId\": 1,\n      \"nameAr\": \"قهوة\",\n      \"nameEn\": \"Coffee\",\n      \"quantity\": 4,\n      \"revenue\": 40\n    }\n  ],\n  \"dailyTrend\": [\n    {\n      \"date\": \"2026-10-01\",\n      \"orderCount\": 2,\n      \"revenue\": 40\n    }\n  ],\n  \"branches\": [\n    {\n      \"branchId\": 1,\n      \"branchName\": \"Main Branch\",\n      \"orderCount\": 2,\n      \"revenue\": 40,\n      \"averageOrderValue\": 20\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Print shift orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/shift-orders?shiftId={{shiftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "shift-orders"
+              ],
+              "query": [
+                {
+                  "key": "shiftId",
+                  "value": "{{shiftId}}"
+                }
+              ]
+            },
+            "description": "Print JSON for one shift. Optional from/to clip order createdAt. Lists all order statuses; footer uses revenue rule."
+          }
+        },
+        {
+          "name": "Print branch KPIs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/branch-kpis?from={{from}}&to={{to}}&branchId={{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "branch-kpis"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                }
+              ]
+            },
+            "description": "Print JSON for one branch. Admin must pass branchId. Manager uses own branch."
+          }
+        },
+        {
+          "name": "Print summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/statistics/print/summary?from={{from}}&to={{to}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "statistics",
+                "print",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{from}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{to}}"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Print JSON summary. Admin without branchId = all branches. Manager = own branch."
+          }
+        }
+      ]
+    },
+    {
+      "name": "orders",
+      "item": [
+        {
+          "name": "List orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders?page=1&pageSize=10&customerId={{customerId}}&branchId={{branchId}}&shiftId={{shiftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                },
+                {
+                  "key": "shiftId",
+                  "value": "{{shiftId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                },
+                {
+                  "key": "orderType",
+                  "value": "DINE_IN",
+                  "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create order — dine-in (no delivery)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j=pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('orderId', String(j.id));",
+                  "pm.expect(j.deliveryFees).to.eql(0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{customerId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+          },
+          "response": [
+            {
+              "name": "201 Created — dine-in order",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"customerId\": {{customerId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    },\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 37.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 5.63,\n  \"totalAmount\": 43.13\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 10,\n  \"orderType\": \"DINE_IN\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 3.75,\n  \"totalAmount\": 28.75,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 2,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create order — takeaway",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+          },
+          "response": [
+            {
+              "name": "201 Created — takeaway order",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 1,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 10,\n  \"orderType\": \"TAKEAWAY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 12.5,\n  \"deliveryFees\": 0,\n  \"serviceFee\": 0,\n  \"totalAmount\": 12.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 1,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create order — with delivery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+          },
+          "response": [
+            {
+              "name": "201 Created — delivery order",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/orders",
+                "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 10,\n  \"orderType\": \"DELIVERY\",\n  \"orderQueue\": 0,\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 5.5,\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"serviceFee\": 0,\n  \"totalAmount\": 30.5,\n  \"status\": \"PENDING\",\n  \"branch\": {\n    \"id\": 1,\n    \"name\": \"Main Branch\",\n    \"type\": \"DINE_IN\",\n    \"servicePercentage\": 0.15\n  },\n  \"items\": [\n    {\n      \"id\": 1,\n      \"quantity\": 2,\n      \"unitPrice\": 12.5,\n      \"menuItemNameAr\": \"قهوة\",\n      \"menuItemNameEn\": \"Coffee\"\n    }\n  ],\n  \"createdAt\": \"2026-06-16T10:05:00.000Z\",\n  \"updatedAt\": \"2026-06-16T10:05:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create order — delivery (custom delivery fee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderType\": \"DELIVERY\",\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"شارع الجلاء عمارة 5\",\n  \"deliveryRegionId\": {{deliveryRegionId}},\n  \"customDeliveryPrice\": 10,\n  \"items\": [\n    {\n      \"menuItemId\": {{menuItemId}},\n      \"quantity\": 2,\n      \"unitPrice\": 12.5\n    }\n  ],\n  \"itemsSubtotal\": 25,\n  \"deliveryFees\": 10,\n  \"serviceFee\": 0,\n  \"totalAmount\": 35\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "POS sends unitPrice per line + itemsSubtotal, deliveryFees, serviceFee, totalAmount. DELIVERY: deliveryAddress (from customer primary/secondary/third) + deliveryRegionId; customDeliveryPrice overrides region fee. Server recalculates and rejects mismatches. Branch + shift from JWT."
+          }
+        },
+        {
+          "name": "Get order by id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

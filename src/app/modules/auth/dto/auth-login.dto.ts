@@ -5,9 +5,9 @@ import { IsString } from 'class-validator';
  * A DTO representing a login user.
  */
 export class AuthLoginDTO {
-  @ApiProperty({ description: 'User email' })
+  @ApiProperty({ description: 'Username' })
   @IsString()
-  readonly email: string;
+  readonly username: string;
 
   @ApiProperty({ description: 'User password' })
   @IsString()

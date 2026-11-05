@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { UpdateUserDTO } from './dtos/update-user.dto';
-import { UserDTO } from './dtos/user.dto';
 import { transformPassword } from 'src/core/security';
+import { UserRole } from 'src/core/enums/user-role';
+import { UserDTO } from './dtos/user.dto';
 
 @Injectable()
 export class UserService {
@@ -13,71 +14,97 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async findById(id: number): Promise<UserDTO | undefined> {
+  async findById(id: number): Promise<User | undefined> {
     const result = await this.userRepository.findOne({ where: { id } });
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async findByFields(
-    options: FindOneOptions<UpdateUserDTO>,
-  ): Promise<UserDTO | undefined> {
+    options: FindOneOptions<User>,
+  ): Promise<User | undefined> {
     const result = await this.userRepository.findOne(options);
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async find(
-    options: FindManyOptions<UpdateUserDTO>,
-  ): Promise<UserDTO | undefined> {
+    options: FindManyOptions<User>,
+  ): Promise<User | undefined> {
     const result = await this.userRepository.findOne(options);
-    return result || undefined;
+    return result ?? undefined;
   }
 
   async findAndCount(
-    options: FindManyOptions<UserDTO>,
-  ): Promise<[UserDTO[], number]> {
+    options: FindManyOptions<User>,
+  ): Promise<[User[], number]> {
     const resultList = await this.userRepository.findAndCount(options);
     return resultList;
   }
 
   async save(
-    userDTO: UpdateUserDTO,
+    userEntity: User,
     creator?: string,
     updatePassword = false,
-  ): Promise<UserDTO> {
+  ): Promise<User> {
     if (updatePassword) {
-      await transformPassword(userDTO);
+      await transformPassword(userEntity);
     }
     if (creator) {
-      if (!userDTO.createdBy) {
-        userDTO.createdBy = creator;
+      if (!userEntity.createdBy) {
+        userEntity.createdBy = creator;
       }
-      userDTO.updatedBy = creator;
+      userEntity.updatedBy = creator;
     }
-    const result = await this.userRepository.save(userDTO);
+
+    if (!userEntity.username?.trim()) {
+      userEntity.username = await this.generateUsername(
+        userEntity.role ?? UserRole.USER,
+      );
+    }
+
+    console.log(userEntity);
+    const result = await this.userRepository.save(userEntity);
     return result;
   }
 
   async update(
-    userDTO: UpdateUserDTO,
+    userEntity: User,
     updater?: string,
-  ): Promise<UpdateUserDTO> {
+  ): Promise<User> {
     if (updater) {
-      userDTO.updatedBy = updater;
+      userEntity.updatedBy = updater;
     }
-    if (userDTO.password) {
-      await transformPassword(userDTO);
+    if (userEntity.password) {
+      await transformPassword(userEntity);
     }
+
     await this.userRepository.update(
       {
-        id: userDTO.id,
+        id: userEntity.id,
       },
-      userDTO,
+      userEntity,
     );
-    return userDTO;
+    return userEntity;
   }
 
-  async delete(userDTO: UserDTO): Promise<UserDTO | undefined> {
+  async delete(userDTO: User): Promise<User | undefined> {
     const result = await this.userRepository.remove(userDTO);
     return result;
+  }
+
+ 
+  
+
+  /** Unique login id like `USR-4821`, `EMP-7742`, `STF-9912` (role prefix + 4 digits). */
+  async generateUsername(role: UserRole): Promise<string> {
+    for (let i = 0; i < 50; i++) {
+      const num = Math.floor(1000 + Math.random() * 9000);
+      const username = `${'EMP'}${num}`;
+      const taken = await this.userRepository.findOne({
+        where: { username },
+        select: { id: true },
+      });
+      if (!taken) return username;
+    }
+    return `${'USR'}${1000 + (Date.now() % 9000)}`;
   }
 }

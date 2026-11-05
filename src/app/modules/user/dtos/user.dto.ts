@@ -1,56 +1,70 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { Exclude } from 'class-transformer';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { UserRole } from 'src/core/enums/user-role';
+import { BranchDTO } from '../../branch/dtos/branch.dto';
 
 /**
  * An User DTO object.
  */
 export class UserDTO extends BaseDTO {
-  @ApiProperty({
-    uniqueItems: true,
-    required: true,
-    example: 'email@domain.com',
-    description: 'User Email',
-  })
-  @IsEmail()
+  @ApiProperty({ example: 'Jane Doe', description: 'Display name' })
+  @IsString()
   @IsNotEmpty()
-  email: string;
+  name: string;
 
-  @ApiProperty({ example: '123456789', description: 'User password' })
-  @Exclude()
+  @ApiProperty({ example: 'jdoe', description: 'Unique login username' })
+  @IsString()
+  @IsOptional()
+  username: string;
+
+  @ApiProperty({ example: 'secret', description: 'User password' })
+  @IsString()
   password: string;
 
   @ApiProperty({
-    example: 'John',
-    description: 'Username',
+    example: '+15550101',
+    description: 'Phone number',
     required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  username?: string;
-
-  @ApiProperty({
-    example: 1,
-    description: 'User activation',
-    required: false,
-  })
-  activated?: boolean;
-
-  @ApiProperty({
-    example: 'http://my-image-url',
-    description: 'Image url',
-    required: false,
-  })
-  imageUrl?: string;
+  phone?: string;
 
   @ApiProperty({
     enum: UserRole,
-    description: 'User Role',
+    description: 'Staff role',
     required: true,
   })
   @IsEnum(UserRole)
   @IsNotEmpty()
   role: UserRole;
+
+  @ApiProperty({
+    example: true,
+    description: 'status',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive: boolean;
+
+
+  @ApiProperty({
+    type: BranchDTO,
+    description: 'Assigned branch',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => BranchDTO)
+  branch?: BranchDTO | null;  
 }
