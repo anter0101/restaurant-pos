@@ -17,7 +17,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('APP_SECRET_KEY'),
-      // secretOrKey: 'REMOVED_SECRET',
       passReqToCallback: true,
     });
   }
