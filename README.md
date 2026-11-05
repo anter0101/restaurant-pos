@@ -1,98 +1,102 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🍽️ Restaurant POS — Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST API for a multi-branch restaurant point-of-sale system. It powers cashier, call-center, manager, and admin screens: menu management, orders (dine-in, takeaway, delivery), customers and delivery regions, cashier shifts, and branch sales statistics with printable reports.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![TypeORM](https://img.shields.io/badge/TypeORM-FE0803?style=flat-square&logo=typeorm&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-C21325?style=flat-square&logo=jest&logoColor=white)
 
-## Description
+## ✨ Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Multi-branch menu**: categories and items, with per-branch availability and price overrides.
+- **Orders**: dine-in, takeaway, and delivery. Each order stores a price snapshot. The server recalculates the subtotal, service fee, and delivery fee, and rejects totals that don't match what the POS sent. Orders are created in a transaction with pessimistic row locks.
+- **Customers and delivery regions**: phone lookup for the call center, and a delivery price per region.
+- **Cashier shifts**: open and end a shift (ending needs a manager's password), supervisor close, and shift total calculation.
+- **Statistics and printing**: manager dashboard KPIs, shift order reports, branch KPIs, and summary print endpoints, with branch scoping per role.
+- **Role-based access**: JWT auth with a `@Roles()` guard on every endpoint.
 
-## Project setup
+## 👥 Roles
 
-```bash
-$ pnpm install
+| Role | What they can do |
+|---|---|
+| `ADMIN` | Manages everything: branches, menu, users, delivery regions, all shifts and statistics |
+| `MANAGER` | Shifts, statistics, and customers for their own branch only |
+| `CASHIER` | Creates orders, opens and ends their own shift |
+| `CALLCENTER` | Finds and manages customers by phone |
+| `USER` | Read-only access to the menu and branches |
+
+## 🧱 Architecture
+
+```
+src/
+├── app/modules/          # Feature modules: controller, service, entity, mapper, DTOs, specs
+│   ├── auth/             # Login and JWT issuing
+│   ├── branch/           # Branches (dine-in / takeaway)
+│   ├── menu-category/    # Menu categories
+│   ├── menu-item/        # Menu items and branch pricing
+│   ├── order/            # Orders, order items, totals validation
+│   ├── customer/         # Customers, phone lookup
+│   ├── delivery-region/  # Delivery areas and fees
+│   ├── shift-management/ # Cashier shifts lifecycle
+│   ├── statistics/       # Dashboard and print reports
+│   └── user/             # Users and roles
+├── core/                 # Enums, security (JWT strategy, guards, decorators), utils
+└── database/             # TypeORM migrations and seeders
 ```
 
-## Compile and run the project
+- All routes are under `/api/v1` (URI versioning) and use global `ValidationPipe` DTO validation.
+- The schema is managed with TypeORM **migrations** (24 so far). Seeders create users and a sample restaurant menu.
+- The API is documented in a **Postman collection** in [`postman/`](postman), and the manager and statistics flows have a frontend guide in [`docs/`](docs).
 
-```bash
-# development
-$ pnpm run start
+### Order lifecycle
 
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING: branch with a stepped kitchen
+  [*] --> PREPARED: other branches
+  PENDING --> PREPARED
+  PREPARED --> SHIFT_CALCULATED: shift totals calculated
 ```
 
-## Run tests
+### Shift lifecycle
 
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+```mermaid
+stateDiagram-v2
+  [*] --> OPEN: cashier opens shift
+  OPEN --> CLOSED: cashier ends (manager password) / supervisor closes
+  CLOSED --> CALCULATED: admin calculates order totals
 ```
 
-## Deployment
+## 🚀 Getting Started
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**Requirements:** Node.js 22+, pnpm, Docker
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+pnpm install
+cp .env.example .env.development   # then fill in APP_SECRET_KEY and DB settings
+pnpm run dev:db                    # starts Postgres in Docker, builds, seeds, and runs in watch mode
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API runs at `http://localhost:8080/api/v1`.
 
-## Resources
+**Full stack with Docker** (API, Nginx, and Postgres):
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+cp .env.docker.example .env.docker
+docker compose -f docker-compose.full.yml --env-file .env.docker up --build
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 🧪 Tests
 
-## Support
+```bash
+pnpm test        # unit tests (services, controllers, mappers)
+pnpm test:e2e    # end-to-end POS scenarios
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📄 License
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED — portfolio project.
